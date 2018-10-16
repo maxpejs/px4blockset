@@ -1,0 +1,25 @@
+%implements px4_ap1_color_power_led "C"
+%selectfile NULL_FILE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockTypeSetup(block, system) void
+	%<LibAddToCommonIncludes("color_power_led.h")>
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockInstanceSetup(block, system) void
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Start(block, system) Output
+    px4_color_power_led_init();
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Outputs(block, system) Output
+    %assign r  = LibBlockInputSignal(0, "", "", 0)
+	%assign g  = LibBlockInputSignal(1, "", "", 0)
+	%assign b  = LibBlockInputSignal(2, "", "", 0)
+    px4_color_power_led_set(%<r>, %<g>, %<b>);
+%endfunction
+

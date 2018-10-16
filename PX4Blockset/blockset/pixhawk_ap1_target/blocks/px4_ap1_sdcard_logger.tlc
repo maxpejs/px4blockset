@@ -1,0 +1,41 @@
+%implements px4_ap1_sdcard_logger "C"
+%selectfile NULL_FILE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockTypeSetup(block, system) void
+	%<LibAddToCommonIncludes("sd_card_logger.h")>
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockInstanceSetup(block, system) void
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Enable(block, system) Output
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Start(block, system) Output
+    %assign sTimeDouble = Parameter[0].Value[0] * 1000
+    %assign sTime = FEVAL("uint16", sTimeDouble)
+    %assign portCnt  = FEVAL("int8", Parameter[1].Value[0])
+    %if (portCnt > 0) %% only if there are any signals to log
+        px4_sd_card_logger_init();
+        px4_sd_card_logger_add_new_logger(%<sTime>, %<portCnt>, "LOG_");
+    %endif
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Outputs(block, system) Output
+    %assign portCnt = FEVAL("int8", Parameter[1].Value[0])
+    %if (portCnt > 0) %% only if there are any signals to log
+        {
+            float temparr[%<portCnt>];
+		%foreach signal = portCnt
+			%assign u = LibBlockInputSignal(signal, "", "", 0)
+			temparr[%<signal>] = %<u>;
+		%endforeach
+			px4_sd_card_logger_add_val(0, temparr);
+        }
+	%endif
+%endfunction

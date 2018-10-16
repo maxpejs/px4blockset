@@ -1,0 +1,32 @@
+/* File: %<FileName>
+ * 
+ * Created with PX4-Blockset
+ * Code generated for Simulink model %<ModelName>
+ *
+ * Model version             : %<ModelVersion>
+ * RTW file version          : %<RTWFileVersion>
+ * RTW file generated on     : %<RTWFileGeneratedOn>
+ * TLC version               : %<TLCVersion>
+ * Source code generated on  : %<SourceGeneratedOn>
+ */
+ 
+/******** Includes ********/
+%<Includes>
+
+/******** Defines ********/
+%<Defines>
+
+/******** Types ********/
+%<Types>
+
+/******** Enums ********/
+%<Enums>
+
+/******** Definitions ********/
+%<Definitions>
+
+/******** Declarations ********/
+%<Declarations>
+
+/******** Functions ********/
+%<Functions>

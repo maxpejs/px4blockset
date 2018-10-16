@@ -1,0 +1,64 @@
+%implements px4_ap1_pwm_main_out "C"
+%selectfile NULL_FILE
+
+%function BlockTypeSetup(block, system) void
+	%<LibAddToCommonIncludes("pwm_main_out.h")>
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockInstanceSetup(block, system) void
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Start(block, system) Output
+    %assign def_pwm = FEVAL("int16", Parameter[8].Value[0])
+    %assign alt_pwm = FEVAL("int16", Parameter[9].Value[0])
+        uint8_t bitmask = 0;
+    %assign bit_1_2 = FEVAL("int8", Parameter[10].Value[0])
+    %assign bit_3_4 = FEVAL("int8", Parameter[11].Value[0])
+    %assign bit_5_8 = FEVAL("int8", Parameter[12].Value[0])
+        
+    %if (bit_1_2 == 2)
+        bitmask |= 0b00000011; //  channels 1 + 2 alternate pwm rate (%<alt_pwm> Hz)
+    %endif
+
+    %if (bit_3_4 == 2)
+        bitmask |= 0b00001100; // channels 3 + 4 alternate pwm rate (%<alt_pwm> Hz)
+    %endif
+
+    %if (bit_5_8 == 2)
+        bitmask |= 0b11110000; // channels 5-8 alternate pwm rate (%<alt_pwm> Hz)
+    %endif
+	
+		pwm_main_out_settings_st pwm_main_set = {%<def_pwm>, %<alt_pwm>, bitmask};
+		px4_pwm_main_out_init(&pwm_main_set);
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Outputs(block, system) Output
+    {
+		pwm_main_out_data_st 	pwm_main_data;
+        memset(&pwm_main_data, 0, sizeof(pwm_main_out_data_st));
+
+    %% first get safety and arm signals
+    %assign safety_sig = LibBlockInputSignal(0, "", "", 0)
+    %assign arming_sig = LibBlockInputSignal(1, "", "", 0)
+    
+    %% get pwm signals
+    %assign idx = 0
+    %assign portIdx = 2
+    %foreach signal = 8
+        %if FEVAL("int8", Parameter[idx].Value[0])
+            %assign u = LibBlockInputSignal(portIdx, "", "", 0)
+        pwm_main_data.values[%<idx>] = %<u>; // main port %<idx + 1>
+            %assign portIdx = portIdx + 1
+        %endif
+        %assign idx = idx + 1
+    %endforeach
+	
+		pwm_main_data.safetyoff = %<safety_sig>;
+		pwm_main_data.arm = %<arming_sig>;
+        px4_pwm_main_out_set(&pwm_main_data); // set new values
+    }
+%endfunction
+

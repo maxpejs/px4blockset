@@ -1,0 +1,37 @@
+%implements px4_ap1_pwm_aux_out "C"
+%selectfile NULL_FILE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockTypeSetup(block, system) void
+	%<LibAddToCommonIncludes("pwm_aux_out.h")>
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockInstanceSetup(block, system) void
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Start(block, system) Output
+    %assign PWM_1_4  	= FEVAL("int16", Parameter[6].Value)
+	%assign PWM_5_6 	= FEVAL("int16", Parameter[7].Value)
+    uint16_t pwm_rates[] = {%<PWM_1_4>, %<PWM_5_6>};
+    px4_pwm_aux_out_init(pwm_rates);
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Outputs(block, system) Output
+    uint16_t values[MAX_AUX_OUT_SERVO_CNT];
+    memset(values, 0, sizeof(values));
+    %assign idx = 0
+    %assign portIdx = 0
+    %foreach signal = 6
+        %if FEVAL("int8", Parameter[idx].Value[0])
+            %assign u = LibBlockInputSignal(portIdx, "", "", 0)
+            values[%<idx>] = %<u>; // aux port %<idx + 1>
+            %assign portIdx = portIdx + 1
+        %endif
+        %assign idx = idx + 1
+    %endforeach
+    px4_pwm_aux_out_write_impulse(values);
+%endfunction
+

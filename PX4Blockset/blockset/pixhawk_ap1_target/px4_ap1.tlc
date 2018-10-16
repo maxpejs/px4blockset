@@ -1,0 +1,12 @@
+%selectfile NULL_FILE
+%assign CodeFormat = "Embedded-C"
+%assign TargetType = "RT"
+%assign Language   = "C"
+%include "codegenentry.tlc"
+
+/%
+  BEGIN_RTW_OPTIONS
+  rtwgensettings.BuildDirSuffix = '_px4blockset';
+  rtwgensettings.DerivedFrom = 'ert.tlc';
+  END_RTW_OPTIONS
+%/

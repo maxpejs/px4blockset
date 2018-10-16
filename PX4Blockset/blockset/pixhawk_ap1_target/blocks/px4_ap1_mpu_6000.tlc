@@ -1,0 +1,58 @@
+%implements px4_ap1_mpu_6000 "C"
+%selectfile NULL_FILE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockTypeSetup(block, system) void
+	%<LibAddToCommonIncludes("mpu6000.h")>
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Start(block, system) Output
+
+    %assign ACC_VALUES  	= [2, 4, 8, 16]
+	%assign GYRO_VALUES 	= [250, 500, 1000, 2000]
+	%assign FILTER_VALUES 	= [256, 188, 98, 42, 20, 10, 5]
+		
+	%assign ACC_CONFIG_IDX  	= FEVAL("int16", Parameter[0].Value)
+	%assign GYRO_CONFIG_IDX 	= FEVAL("int16", Parameter[1].Value)
+	%assign FILTER_CONFIG_IDX 	= FEVAL("int16", Parameter[2].Value)
+		
+	%assign ACC_CONFIG 		= ACC_VALUES[ACC_CONFIG_IDX-1]
+	%assign GYRO_CONFIG 	= GYRO_VALUES[GYRO_CONFIG_IDX-1]
+	%assign FILTER_CONFIG 	= FILTER_VALUES[FILTER_CONFIG_IDX-1]
+
+    mpu6000_settings_st mpu600set;
+    mpu600set.accel_range = BITS_FS_%<ACC_CONFIG>G;
+	mpu600set.gyro_range  = BITS_FS_%<GYRO_CONFIG>DPS;		
+	mpu600set.dlpf_cfg    = DLPF_CFG_%<FILTER_CONFIG>HZ;		
+	mpu600set.smplrt_cfg  = 0x00;
+	
+	mpu600set.scale_accel_x  = %<Parameter[3].Value[0]>f;
+	mpu600set.scale_accel_y  = %<Parameter[4].Value[0]>f;
+	mpu600set.scale_accel_z  = %<Parameter[5].Value[0]>f;
+	mpu600set.offset_accel_x = %<Parameter[6].Value[0]>f;
+	mpu600set.offset_accel_y = %<Parameter[7].Value[0]>f;
+	mpu600set.offset_accel_z = %<Parameter[8].Value[0]>f;
+	px4_mpu6000_init(&mpu600set);
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Outputs(block, system) Output
+    %assign ax   = LibBlockOutputSignal(0, "", "", 0)
+    %assign ay   = LibBlockOutputSignal(1, "", "", 0)
+    %assign az   = LibBlockOutputSignal(2, "", "", 0)
+    %assign gx   = LibBlockOutputSignal(3, "", "", 0)
+    %assign gy   = LibBlockOutputSignal(4, "", "", 0)
+    %assign gz   = LibBlockOutputSignal(5, "", "", 0)
+    %assign temp = LibBlockOutputSignal(6, "", "", 0)
+	
+	mpu6000_data_st mpu_data;
+	px4_mpu6000_get(&mpu_data);
+    %<ax>   = mpu_data.accel_x;
+    %<ay>   = mpu_data.accel_y;
+    %<az>   = mpu_data.accel_z;
+    %<temp> = mpu_data.temp;
+    %<gx>   = mpu_data.gyro_x;
+    %<gy>   = mpu_data.gyro_y;
+    %<gz>   = mpu_data.gyro_z;
+%endfunction

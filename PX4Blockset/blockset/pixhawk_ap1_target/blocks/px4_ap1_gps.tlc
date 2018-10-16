@@ -1,0 +1,78 @@
+%implements px4_ap1_gps "C"
+%selectfile NULL_FILE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockTypeSetup(block, system) void
+	%<LibAddToCommonIncludes("gps.h")>
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockInstanceSetup(block, system) void
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Start(block, system) Output
+    %assign baudrate = FEVAL("uint32", Parameter[5].Value[0])
+    px4_gps_init(%<baudrate>);
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Outputs(block, system) Output
+    %assign portIdx = 0
+    gps_rmc_packet_st gps_data;
+    px4_gps_get(&gps_data);
+    
+    %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+    %<y> = gps_data.Valid;
+    %assign portIdx = portIdx + 1
+
+    %% geographic position
+    %if FEVAL("int8", Parameter[0].Value[0])
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.Latitude;
+        %assign portIdx = portIdx + 1
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.Longitude;
+        %assign portIdx = portIdx + 1
+    %endif
+    
+    %% speed
+    %if FEVAL("int8", Parameter[1].Value[0])
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.Ground_speed_ms;
+        %assign portIdx = portIdx + 1
+    %endif
+    
+    %% course
+    %if FEVAL("int8", Parameter[2].Value[0])
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.Ground_course;
+        %assign portIdx = portIdx + 1
+    %endif
+
+    %% time
+    %if FEVAL("int8", Parameter[3].Value[0])
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.hour;
+        %assign portIdx = portIdx + 1
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.Minute;
+        %assign portIdx = portIdx + 1
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.Second;
+        %assign portIdx = portIdx + 1
+    %endif
+
+    %% date
+    %if FEVAL("int8", Parameter[4].Value[0])
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.Day;
+        %assign portIdx = portIdx + 1
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.Month;
+        %assign portIdx = portIdx + 1
+        %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
+        %<y> = gps_data.Year;
+        %assign portIdx = portIdx + 1
+    %endif
+%endfunction

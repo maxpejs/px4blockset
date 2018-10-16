@@ -1,0 +1,35 @@
+%implements px4_ap1_hmc5883 "C"
+%selectfile NULL_FILE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockTypeSetup(block, system) void
+	%<LibAddToCommonIncludes("hmc5883.h")>
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function BlockInstanceSetup(block, system) void
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Start(block, system) Output
+	%assign MAG_RANGE_VALUES  		= ["0_88", "1_3", "1_9", "2_5", "4_0", "4_7", "5_6", "8_1"]
+	%assign MAG_RANGE_CONFIG_IDX  	= FEVAL("int16", Parameter[0].Value)
+	%assign MAG_RANGE_CONFIG 		= MAG_RANGE_VALUES[MAG_RANGE_CONFIG_IDX-1]
+	
+	hmc5883_settings_st hmc5883_set;
+	hmc5883_set.magRange = HMC5883_RANGE_%<MAG_RANGE_CONFIG>;
+	px4_hmc5883_init(&hmc5883_set);
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%function Outputs(block, system) Output
+    %assign mx   = LibBlockOutputSignal(0, "", "", 0)
+    %assign my   = LibBlockOutputSignal(1, "", "", 0)
+    %assign mz   = LibBlockOutputSignal(2, "", "", 0)
+
+	hmc5883_data_st mag_data;
+	px4_hmc5883_get(&mag_data);
+	%<mx>   = mag_data.magX;
+	%<my>   = mag_data.magY;
+	%<mz>   = mag_data.magZ;
+%endfunction

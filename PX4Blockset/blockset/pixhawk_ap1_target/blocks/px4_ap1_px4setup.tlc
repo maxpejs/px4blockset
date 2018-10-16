@@ -1,0 +1,40 @@
+%implements px4_ap1_px4setup "C"
+%selectfile NULL_FILE
+
+%function BlockTypeSetup(block, system) void
+	%% includes
+	%<LibAddToCommonIncludes("<string.h>")>
+	%<LibAddToCommonIncludes("<rtwtypes.h>")>
+	%<LibAddToCommonIncludes("<cpu_load.h>")>
+	%<LibAddToCommonIncludes("<target_setup.h>")>
+	%<LibAddToCommonIncludes("<px4_task_time_config.h>")>
+	%<LibAddToCommonIncludes("<stm32f4xx_hal.h>")>
+	
+	%openfile tmpBuf
+	%assign sTimeDouble = Parameter[0].Value[0] * 1000
+    %assign sTime = FEVAL("uint16", sTimeDouble)
+    #define PX4_APP_TASK_TIME %<sTime>
+    %closefile tmpBuf
+	%assign file = LibCreateSourceFile("Header", "Simulink", "px4_task_time_config")
+	%<LibAddSourceFileCustomSection(file, "Defines", "customDefines")>
+	%<LibSetSourceFileCustomSection(file, "customDefines", tmpBuf)>
+    
+    %assign debugMode = FEVAL("int16", Parameter[2].Value)
+    %if debugMode
+        %assign :: _DEBUG_MODE_ = 1
+    %endif
+%endfunction
+
+%function Start(block, system) Output
+%endfunction
+
+%function BlockInstanceSetup(block, system) void
+%endfunction
+
+%function Outputs(block, system) Output
+	%% if check box for cpu usage calculation is enabled
+	%if FEVAL("int8", Parameter[1].Value[0])
+		%assign cpuLoadOutSig 	= LibBlockOutputSignal(0, "", "", 0)
+		%<cpuLoadOutSig>   		= cpu_load_get_curr_cpu_load();
+	%endif
+%endfunction

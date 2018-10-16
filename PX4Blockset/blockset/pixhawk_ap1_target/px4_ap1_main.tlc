@@ -1,0 +1,87 @@
+%function SLibGenerateMain() void
+    %openfile tmpBuf
+    #include "%<LibGetMdlPubHdrBaseName()>.h"
+	#include <comm_itf.h>
+	#include <tasks.h>
+    %closefile tmpBuf
+    %assign file  = LibCreateSourceFile("Source", "Custom", "main")
+    %<LibAddSourceFileCustomSection(file, "Includes", "customIncludes")>
+    %<LibSetSourceFileCustomSection(file, "customIncludes", tmpBuf)>
+   
+    %openfile tmpBuf
+    /* Main program */
+    int_T main(void)
+    {
+		uint32_t sysTickAct = 0, sysTickLast = 0;
+
+        /* configure target */
+        px4_target_setup_init();
+        
+		/* wait for startup pixhawk periphery */
+		HAL_Delay(100);
+		
+        /* init cpu load module */
+        cpu_load_init(PX4_APP_TASK_TIME);
+
+        /* init communication intefrace */
+        comm_itf_init();
+		
+        /* Initialize model */
+        %<LibCallModelInitialize()>
+        
+		/* Init tick*/
+		sysTickLast = HAL_GetTick();
+		
+		uint64_t start;
+		
+        while(1)
+        {
+			sysTickAct = HAL_GetTick();
+			
+            if(sysTickLast != sysTickAct) 	// every 1 ms
+            {
+                sysTickLast++;
+
+                if ( (sysTickLast % PX4_APP_TASK_TIME) == 0 )
+                {
+					// start timer
+					cpu_load_start_meas();
+					
+					// read inputs
+					px4_tasks_read_inputs();
+					
+					start = tic();
+					
+                    // Simulink model task
+                    %<LibCallModelStep(0)>
+					
+					app_runtime = (uint32_t)toc(start);
+					
+					// write outputs
+					px4_tasks_write_outputs();
+					
+					// stop timer
+					cpu_load_stop_meas();
+                }
+
+                if ( (sysTickLast % 1000) == 0 )
+                {
+                    comm_itf_process_tick();
+                }
+            }
+        }
+    }
+
+   %closefile tmpBuf  
+   %assign file  = LibCreateSourceFile("Source", "Custom", "main")
+   %<LibAddSourceFileCustomSection(file,"Functions","customFunctions")>
+   %<LibSetSourceFileCustomSection(file,"customFunctions",tmpBuf)>
+%endfunction
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%selectfile NULL_FILE
+%<LibSetCodeTemplateComplianceLevel(2)>
+%<SLibGenerateMain()>
+%include "px4_ap1_makefile.tlc"
+%<SLibGenerateMakefile()>

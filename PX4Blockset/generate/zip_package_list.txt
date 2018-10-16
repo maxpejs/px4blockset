@@ -1,0 +1,20 @@
+addpathList
+install.m
+uninstall.m
+
+src\modules
+src\startup
+src\third party
+tools
+blockset
+
+src\drivers\STM32F4xx_HAL_Driver
+src\drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
+src\drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f427xx.h
+src\drivers\CMSIS\Device\ST\STM32F4xx\Include\system_stm32f4xx.h
+src\drivers\CMSIS\Device\ST\STM32F4xx\Source\Templates\system_stm32f4xx.c
+src\drivers\CMSIS\Include\cmsis_gcc.h
+src\drivers\CMSIS\Include\core_cm4.h
+src\drivers\CMSIS\Include\core_cmFunc.h
+src\drivers\CMSIS\Include\core_cmInstr.h
+src\drivers\CMSIS\Include\core_cmSimd.h
