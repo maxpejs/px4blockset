@@ -166,7 +166,7 @@ namespace PX4FileDownloader
                                 }
                             }
 
-                            indata = lines[lines.Length - 1];
+                            indata = lines[lines.Length - 1];	// last line may be incomplete, so keep it for next parsing cycle
                         }
 
 

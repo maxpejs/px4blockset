@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // Attribute gesteuert. Ändern Sie diese Attributwerte, um die Informationen zu ändern,
 // die einer Assembly zugeordnet sind.
 [assembly: AssemblyTitle("PX4 Logfile Downloader")]
-[assembly: AssemblyDescription("Tool for dowloading log files from PIXHAWKs sd card.")]
+[assembly: AssemblyDescription("Tool for downloading log files from PIXHAWKs sd card (using PX4 blockset)")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Max Pejs")]
 [assembly: AssemblyProduct("PX4Console")]
