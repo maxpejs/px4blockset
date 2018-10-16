@@ -1,8 +1,5 @@
 /****************************************************************************
 *
-*   Copyright (C) 2016, Max Pejs <max.pejs@googlemail.com>
-*	All rights reserved.
-*
 * 	Redistribution and use in source and binary forms, with or without 
 *	modification, are permitted provided that the following conditions 
 *	are met:
@@ -28,50 +25,39 @@
 *	THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
 *	DAMAGE.
 *****************************************************************************/
-
-#ifndef COMM_ITF_H
-#define COMM_ITF_H
-
+#ifndef CRITICAL_SECTION_H
+#define CRITICAL_SECTION_H
 #include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stm32f4xx.h>
 
-#include <cmsis_os.h>
+typedef int32_t critSectionId;
 
-#include <stm32f4xx_hal.h>
-#include <defines.h>
-#include <error_handler.h>
-#include <cpu_load.h>
-#include <mpu6000.h>
-#include <hmc5883.h>
-#include <gps.h>
-#include <rc_ppm_input.h>
-#include <pwm_main_out.h>
-#include <pwm_aux_out.h>
-#include <color_power_led.h>
-#include <signal_output.h>
-#include <sd_card_logger.h>
-#include <ms5611.h>
-#include <utilities.h>
-#include <tasks.h>
+/**	
+*	Creates new critical section and returns its id
+*/
+critSectionId register_critical_section();
 
-uint32_t app_runtime;
+/**	
+*	Try to enter the critical section by given section id
+*		returns RET_NOK if the section busy
+*		returns RET_NOK if the section free 
+*/
+ErrorStatus enter_critical_section(int32_t cs);
 
-/* regular functions for printing any pixhawk sensor informations like calibration info */
-void comm_itf_init();
-void comm_itf_rx_complete_event(void);
-void comm_itf_task_function(void const * argv);
+/**	
+*	Register leaving the critical section by given section id
+*/void leave_critical_section(int32_t cs);
 
-/* debug functions */
-void debug_print_int(int val);
-void debug_print_float(float val);
-void debug_print_string(const char * str);
 
-/* print functions */
-void comm_itf_print_int(int val);
-void comm_itf_print_float(float val);
-void comm_itf_print_string(const char * str);
-	
+#endif // CRITICAL_SECTION_H
 
-#endif // COMM_ITF_H
+
+
+
+
+
+
+
+
+
+

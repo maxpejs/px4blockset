@@ -28,31 +28,17 @@
 *	THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 *	DAMAGE.
 *****************************************************************************/
-
 #include "sd_card_logger.h"
-
+#include <logger_ring_buffer.h>
 #include <FatFs/Core/ff_gen_drv.h>
 #include <FatFs/Drivers/sd_diskio.h>
 
-#define SIGNAL_MAX_CNT 			10
 #define FILENAME_MAX_LENGTH 	13
-#define FILE_LOGGER_MAX_CNT 	_FS_LOCK
+#define FILE_LOGGER_MAX_CNT 	FF_FS_LOCK
 
-#define WRITE_ASCII_FORMATTED	DISABLE
-#define SD_RING_BUFF_SIZE		1000
+#define MIN_PACKAGE_SIZE_CNT 	50
+#define MAX_PACKAGE_SIZE_CNT  	100
 
-typedef struct
-{
-	uint64_t timestamp;
-	float val[SIGNAL_MAX_CNT];
-}sd_write_data_st;
-
-typedef struct
-{
-	uint32_t read;
-	uint32_t write;
-	sd_write_data_st buff[SD_RING_BUFF_SIZE];
-}sd_data_ring_buff;
 
 typedef struct
 {
@@ -64,9 +50,9 @@ typedef struct
 	uint32_t 	sample_cnt;
 	uint32_t 	sig_cnt;
 	uint32_t 	runtime;
-	uint64_t	tick_last_call;
+	uint32_t	tick_last_call;
 	uint32_t 	file_logger_state;
-	sd_data_ring_buff rbuff;
+	ring_buff_data_st rbuff;
 
 }sd_card_file_info_st;
 
@@ -80,7 +66,6 @@ static uint32_t _file_logger_cnt 	= 0;
 
 static sd_card_file_info_st * file_data_arr[FILE_LOGGER_MAX_CNT];
 
-static uint32_t 	_sd_card_logger_init_board();
 static uint32_t 	_sd_card_logger_init_sdcard();
 static uint32_t 	_get_next_id_for_logfile(char * filename_prefix);
 static ErrorStatus 	_create_new_log_file(sd_card_file_info_st * info);
@@ -91,18 +76,10 @@ static void 		_px4_sd_card_logger_stop();
 static void 		_px4_sd_card_logger_resume();
 static FRESULT 		_scan_files(char* path);
 
-
-static inline uint32_t 	_ring_buffer_empty(sd_data_ring_buff * b);
-static uint32_t 	_ring_buffer_free_space(sd_data_ring_buff * b);
-
-
 void px4_sd_card_logger_init()
 {
-	_sd_card_logger_init_board();
 	_sd_card_logger_init_sdcard();
-
 	memset(file_data_arr, 0 , sizeof(file_data_arr));
-
 	debug_print_string("sd card logger init ok\r\n");
 	_module_state = ENABLE;
 }
@@ -148,7 +125,7 @@ uint32_t px4_sd_card_logger_add_new_logger(uint32_t sampleTime, uint32_t sigCnt,
 
 void px4_sd_card_logger_add_val(uint32_t log_id, float * values)
 {
-	uint64_t ts = tic();
+	uint32_t ts = tic();
 
 	if (log_id >= FILE_LOGGER_MAX_CNT)
 	{
@@ -167,7 +144,7 @@ void px4_sd_card_logger_add_val(uint32_t log_id, float * values)
 		return;
 	}
 
-	// init counter of samples for exact adding values according to sampling time
+	// init counter of samples for exact timing for adding values according to sampling time
 	if(file_data_arr[log_id]->sample_cnt == 0)
 	{
 		file_data_arr[log_id]->sample_cnt = (uint32_t) (ts / 1000) / file_data_arr[log_id]->sample_time;
@@ -183,14 +160,12 @@ void px4_sd_card_logger_add_val(uint32_t log_id, float * values)
 		memcpy(file_data_arr[log_id]->rbuff.buff[idx].val, values, sizeof(float) * file_data_arr[log_id]->sig_cnt);
 		file_data_arr[log_id]->rbuff.buff[idx].timestamp = ts;
 
-		file_data_arr[log_id]->rbuff.write = ++idx % SD_RING_BUFF_SIZE;
+		file_data_arr[log_id]->rbuff.write = ++idx % RING_BUFF_SIZE;
 	}
 	else
 	{
 		// debug_print_string("sd card logger. not enough free buffer space\r\n");
 	}
-
-	// debug_print_string("added new sample!\r\n");
 }
 
 void px4_sd_card_logger_task(void)
@@ -224,69 +199,82 @@ void px4_sd_card_logger_task(void)
 
 static void _write_to_sd_card(sd_card_file_info_st * info)
 {
-	FRESULT 	fr;
-	UINT 		writtenbytes = 0;
-	uint32_t 	packagesize;
-	uint32_t	idx;
-	uint64_t 	timestampt = 0;
-
-	uint32_t elem_cnt = 1000;
-
-	packagesize = sizeof(uint64_t) + info->sig_cnt * sizeof(float);
+	FRESULT fr;
+	UINT writtenbytes = 0;
+	uint32_t idxRead, idxWrite;
+	uint32_t timestampt = 0;
 
 //	debug_print_string("Buff len:");
 //	debug_print_int(SD_RING_BUFF_SIZE - _ring_buffer_free_space(&(info->rbuff)) - 1);
 //	debug_print_string("\r\n");
 
-	while (!_ring_buffer_empty(&(info->rbuff)) && elem_cnt-- > 0)
+	if (_ring_buffer_count(&(info->rbuff)) >= MIN_PACKAGE_SIZE_CNT)
 	{
-		if (elem_cnt == 999)
-		{
-			timestampt = tic();
-		}
+		debug_print_string("b.size "); debug_print_int(_ring_buffer_count(&(info->rbuff)));
+		debug_print_string(", r "); debug_print_int(info->rbuff.read); debug_print_string(" w "); debug_print_int(info->rbuff.write);
 
-		idx =info->rbuff.read;
+		timestampt = tic();
 
-		/* copy data into temp array to keep time for minimize time inside critical section */
-		if (WRITE_ASCII_FORMATTED == ENABLE)
+		idxRead = info->rbuff.read;
+		idxWrite= info->rbuff.write;
+
+		uint32_t numofsamples = 0;
+		
+		// we want to write a couple of samples stored in ring buffer as single block on SD card
+		// we should be aware that we don't leave the array bound of the ring buffer during write process
+		if (idxWrite > idxRead)
 		{
-//			char arr[100];
-//			uint64_t ts = info->rbuff.buff[idx].timestamp;
-//
-//			snprintf(arr, sizeof(arr), "%d.%03d", (int) (ts / 1000000), (int) ((ts / 1000) % 1000));
-//
-//			for (uint32_t i = 0; i < info->sig_cnt; i++)
-//			{
-//				char fl[20];
-//				my_ftoa(info->rbuff.buff[idx].val[i], fl, 20, 3);
-//				snprintf(&arr[strlen(arr)], sizeof(arr) - strlen(arr), "%s", fl);
-//			}
-//
-//			snprintf(&arr[strlen(arr)], sizeof(arr) - strlen(arr), "\r\n");
-//
-//			f_puts(arr, &(info->fi));
-//			f_sync(&(info->fi));
+			// read index is behind the write index, like this
+			//							 w
+			//							 |
+			//	[x] [x] [x] [x] [x] [x] [x] [x] [x]
+			//				 |
+			//				 r
+			
+			// count of samples stored in memory one after another
+			numofsamples = idxWrite - idxRead;
+			debug_print_string(" w>r ");
 		}
 		else
 		{
-			fr = f_write(&(info->fi), (const void*) &info->rbuff.buff[idx], packagesize, &writtenbytes);
-			f_sync(&(info->fi));
-
-			if ((fr != FR_OK) || (writtenbytes != packagesize))
-			{
-				debug_print_string("Error at writing data entry, or number of written bytes doesn't match\r\n");
-			}
+			// write index is behind the read index, like this
+			//				 w
+			//				 |
+			//	[x] [x] [x] [x] [x] [x] [x] [x] [x]
+			//				 			 |
+			//				 			 r
+			
+			// count of samples stored in memory one after another until the end of array is reached
+			numofsamples = RING_BUFF_SIZE - idxRead;
+			debug_print_string(" r>w ");
 		}
 
-		info->rbuff.read = ++idx % SD_RING_BUFF_SIZE;
+		debug_print_string("\n");
+
+		numofsamples = numofsamples > MAX_PACKAGE_SIZE_CNT ? MAX_PACKAGE_SIZE_CNT : numofsamples;
+
+		fr = f_write(&(info->fi), (const void*) &info->rbuff.buff[idxRead], sizeof(data_st) * numofsamples, &writtenbytes);
+		f_sync(&(info->fi));
+
+		if ((fr != FR_OK) || (writtenbytes != sizeof(data_st) * numofsamples))
+		{
+			debug_print_string("Error at writing data entry, or number of written bytes doesn't match. idx: ");
+			debug_print_int(idxRead);
+			debug_print_string(". ");
+			debug_print_int(sizeof(data_st) * numofsamples);
+			debug_print_string(" vs. ");
+			debug_print_int(writtenbytes);
+			debug_print_string("\n");
+		}
+		else
+		{
+			info->rbuff.read = (idxRead + numofsamples) % RING_BUFF_SIZE;
+			debug_print_string(" written "); debug_print_int(numofsamples); debug_print_string(" samples\n");
+		}
+
+		info->runtime = (timestampt == 0) ? info->runtime : (uint32_t) toc(timestampt);
+		// debug_print_string(" runtime "); debug_print_int(info->runtime); debug_print_string("\r\n");
 	}
-
-	info->runtime = (timestampt == 0) ? info->runtime : (uint32_t) toc(timestampt);
-}
-
-static uint32_t _sd_card_logger_init_board()
-{
-	return SUCCESS;
 }
 
 static uint32_t _sd_card_logger_init_sdcard()
@@ -311,39 +299,32 @@ static uint32_t _sd_card_logger_init_sdcard()
 
 static ErrorStatus _create_new_log_file(sd_card_file_info_st * info)
 {
-	FRESULT 	res = 0;
-	uint32_t 	log_idx;
-	UINT 		writtenbytes;
+	FRESULT res = 0;
+	uint32_t log_idx;
+	UINT writtenbytes;
 
 	log_idx = _get_next_id_for_logfile(info->filename_prefix);
 	snprintf(info->filename, 32, "%s%03d", info->filename_prefix, (int) log_idx);
 
+	// create and open new log file
 	res = f_open(&(info->fi), info->filename, FA_CREATE_ALWAYS | FA_WRITE);
 	f_sync(&(info->fi));
 
+	// write number of signals as meta info
+	res |= f_write(&(info->fi), &(info->sig_cnt), sizeof(info->sig_cnt), &writtenbytes);
+	f_sync(&(info->fi));
 
-	if (WRITE_ASCII_FORMATTED == ENABLE)
+	// write sampling time of block as meta info
+	res |= f_write(&(info->fi), &(info->sample_time), sizeof(info->sample_time), &writtenbytes);
+	f_sync(&(info->fi));
+
+	// check results
+	if ((res != FR_OK) || (writtenbytes != sizeof(info->sample_time)))
 	{
-//		char buff[30];
-//		snprintf(buff, sizeof(buff), "%i %i\r\n", (int)info->sig_cnt, (int)info->sample_time);
-//		f_puts(buff, &(info->fi));
-//		f_sync(&(info->fi));
+		debug_print_string("#Error open file, or error at writing file meta block\r\n");
+		f_close(&(info->fi));
 	}
-	else
-	{
-		res |= f_write(&(info->fi), &(info->sig_cnt), sizeof(info->sig_cnt), &writtenbytes);
-		f_sync(&(info->fi));
 
-		res |= f_write(&(info->fi), &(info->sample_time), sizeof(info->sample_time), &writtenbytes);
-		f_sync(&(info->fi));
-
-		if ((res != FR_OK) || (writtenbytes != sizeof(info->sig_cnt)))
-		{
-			debug_print_string("#Error open file, or error at writing init block\r\n");
-			f_close(&(info->fi));
-		}
-
-	}
 	return (res == FR_OK) ? SUCCESS : ERROR;
 }
 
@@ -399,7 +380,6 @@ static uint32_t _get_next_id_for_logfile(char * filename_prefix)
 	return ret;
 }
 
-
 static void _copy_file_name_from_cmd(const char * cmd, char * file)
 {
 	while (*cmd != 0 && *cmd != ' ')
@@ -418,13 +398,11 @@ static void _copy_file_name_from_cmd(const char * cmd, char * file)
 
 void px4_sd_card_logger_process_cmd(const char * cmd)
 {
-	char 		path[20];
+	char path[20];
 
 	if (strncmp(cmd, "list all", strlen("list all")) == 0)
 	{
 		comm_itf_print_string("--- file list start ---\r\n");
-
-		// TODO print file size and runtime length
 		_scan_files("/");
 		comm_itf_print_string("--- file list end ---\r\n");
 	}
@@ -632,7 +610,7 @@ static void _delete_all_files()
 			if (res != FR_OK || !fno.fname[0])
 				break;
 
-			if (_FS_RPATH && fno.fname[0] == '.')
+			if (FF_FS_RPATH && fno.fname[0] == '.')
 				continue;
 
 			j = 0;
@@ -662,17 +640,12 @@ static void _list_single_file(char * path)
 	FRESULT res;
 
 	FIL f;
-	sd_write_data_st data;
+	data_st data;
 	UINT bytesread_sigcnt, bytesread_sampletime;
 	char arr[150];
 	uint32_t sig_cnt, sampletime;
 	uint32_t packagesize;
 
-//	comm_itf_print_string("==> list file ");
-//	comm_itf_print_string(path);
-//	comm_itf_print_string(" ... \r\n");
-
-	// TODO: Check if file is current opened for logging
 	if ( FILE_LOGGER_MAX_CNT == _file_logger_cnt)
 	{
 		comm_itf_print_string("Error, max count of parallel allowed opened files is reached\r\n");
@@ -714,83 +687,37 @@ static void _list_single_file(char * path)
 		return;
 	}
 
-	packagesize = sizeof(data.timestamp) + sig_cnt * sizeof(data.val[0]);
-
-//	comm_itf_print_string("signal counter: ");
-//	comm_itf_print_int(sig_cnt);
-//	comm_itf_print_string("\r\n");
+	packagesize = sizeof(data_st);
 
 	comm_itf_print_string("=== BEGIN ===\r\n");
 
-	if ( WRITE_ASCII_FORMATTED == ENABLE)
+	do
 	{
-//		do
-//		{
-//			res = f_read(&f, (void*) &data, packagesize, &bytesread_sigcnt);
-//			f_sync(&f);
-//
-//			if ((res != FR_OK) || (bytesread_sigcnt != packagesize))
-//			{
-//				comm_itf_print_string("Error reading file");
-//				f_close(&f);
-//				return;
-//			}
-//
-//			snprintf(arr, sizeof(arr), "%d,%03d", (int) (data.timestamp / 1000000), (int) ((data.timestamp / 1000) % 1000));
-//			comm_itf_print_string(arr);
-//
-//			for (uint32_t i = 0; i < sig_cnt; i++)
-//			{
-//				char fl[20];
-//				my_ftoa(data.val[i], fl, 20, 3);
-//
-//				snprintf(arr, sizeof(arr), "\t%s", fl);
-//				comm_itf_print_string(arr);
-//			}
-//			comm_itf_print_string("\r\n");
-//
-//		} while (!f_eof(&f));
-	}
-	else
-	{
-		do
+		res = f_read(&f, (void*) &data, packagesize, &bytesread_sigcnt);
+		f_sync(&f);
+
+		if ((res != FR_OK) || (bytesread_sigcnt != packagesize))
 		{
-			res = f_read(&f, (void*) &data, packagesize, &bytesread_sigcnt);
-			f_sync(&f);
+			comm_itf_print_string("Error reading file");
+			f_close(&f);
+			break;
+		}
 
-			if ((res != FR_OK) || (bytesread_sigcnt != packagesize))
-			{
-				comm_itf_print_string("Error reading file");
-				f_close(&f);
-				return;
-			}
+		snprintf(arr, sizeof(arr), "%d.%03d", (int) (data.timestamp / 1000000), (int) ((data.timestamp / 1000) % 1000));
+		comm_itf_print_string(arr);
 
-			snprintf(arr, sizeof(arr), "%d.%03d", (int) (data.timestamp / 1000000), (int) ((data.timestamp / 1000) % 1000));
+		for (uint32_t i = 0; i < sig_cnt; i++)
+		{
+			char fl[20];
+			my_ftoa(data.val[i], fl, 3);
+
+			snprintf(arr, sizeof(arr), ",%s", fl);
 			comm_itf_print_string(arr);
+		}
+		comm_itf_print_string("\r\n");
 
-			for (uint32_t i = 0; i < sig_cnt; i++)
-			{
-				char fl[20];
-				my_ftoa(data.val[i], fl, 3);
-
-				snprintf(arr, sizeof(arr), ",%s", fl);
-				comm_itf_print_string(arr);
-			}
-			comm_itf_print_string("\r\n");
-
-		} while (!f_eof(&f));
-	}
+	} while (!f_eof(&f));
 
 	comm_itf_print_string("=== END ===\r\n");
 	f_close(&f);
-}
-
-static inline uint32_t _ring_buffer_empty(sd_data_ring_buff * b)
-{
-	return b->read == b->write;
-}
-
-static uint32_t _ring_buffer_free_space(sd_data_ring_buff * b)
-{
-	return (SD_RING_BUFF_SIZE + b->read - b->write - 1) % SD_RING_BUFF_SIZE;
 }

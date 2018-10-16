@@ -32,6 +32,8 @@
 	
 		pwm_main_out_settings_st pwm_main_set = {%<def_pwm>, %<alt_pwm>, bitmask};
 		px4_pwm_main_out_init(&pwm_main_set);
+		px4_tasks_register_task(ePWM_MAIN, "pwm_main", px4_pwm_main_out_update, 50, 0, ePrioNormal);
+		
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

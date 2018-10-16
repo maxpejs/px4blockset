@@ -1,30 +1,31 @@
 #include "target_setup.h"
+#include "stm32f4xx_hal.h"
+#include "error_handler.h"
+#include "comm_itf.h"
+#include <fmu_amber_led.h>
+#include <spi_drv.h>
 
-void _set_vector_table(uint32_t NVIC_VectTab, uint32_t Offset);
-void _set_clock(void);
-void _setup_gpios(void);
-void _setup_gpio(GPIO_TypeDef * port, uint16_t pin, uint32_t mode, uint32_t pull, uint32_t speed, uint8_t alternate, uint8_t pin_state);
+static void _set_vector_table(uint32_t NVIC_VectTab, uint32_t Offset);
+static void _set_clock(void);
+static void _setup_gpio(GPIO_TypeDef * port, uint16_t pin, uint32_t mode, uint32_t pull, uint32_t speed, uint8_t alternate, uint8_t pin_state);
+
+void HAL_MspInit(void);
 
 #define NONE 	0
 
 void px4_target_setup_init()
 {
-
-	/* initialize hal drivers */
-	HAL_Init();
-
-	// Reinit tick with higher priority
-	HAL_InitTick(SYS_TICK_PRIO);
-
-	_set_clock();
-
 	// vector table offset caused by bootloader
 	_set_vector_table(FLASH_BASE, 0x4000);
 
-	_setup_gpios();
+	// initialize STM HAL drivers
+	HAL_Init();
+
+	// set internal clock to 168MHz
+	_set_clock();
 }
 
-void _set_vector_table(uint32_t NVIC_VectTab, uint32_t Offset)
+static void _set_vector_table(uint32_t NVIC_VectTab, uint32_t Offset)
 { 
 	/* Check the parameters */
     assert_param(IS_NVIC_VECTTAB(NVIC_VectTab));
@@ -32,7 +33,7 @@ void _set_vector_table(uint32_t NVIC_VectTab, uint32_t Offset)
     SCB->VTOR = NVIC_VectTab | (Offset & (uint32_t)0x1FFFFF80);
 }
 
-void _set_clock()
+static void _set_clock()
 {
 	RCC_ClkInitTypeDef RCC_ClkInitStruct;
 	RCC_OscInitTypeDef RCC_OscInitStruct;
@@ -71,10 +72,10 @@ void _set_clock()
 		error_handler(0);
 	}
 
-    HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000U);
+    // HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000U);
 }
 
-void _setup_gpios(void)
+void HAL_MspInit(void)
 {
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
@@ -141,7 +142,7 @@ void _setup_gpios(void)
 	fmu_amber_led_init();
 }
 
-void _setup_gpio(GPIO_TypeDef * port, uint16_t pin, uint32_t mode, uint32_t pull, uint32_t speed, uint8_t alternate, uint8_t pin_state)
+static void _setup_gpio(GPIO_TypeDef * port, uint16_t pin, uint32_t mode, uint32_t pull, uint32_t speed, uint8_t alternate, uint8_t pin_state)
 {
 	GPIO_InitTypeDef GPIO_InitStruct =	{ pin, mode, pull, speed, alternate };
 	HAL_GPIO_Init(port, &GPIO_InitStruct);
@@ -150,3 +151,20 @@ void _setup_gpio(GPIO_TypeDef * port, uint16_t pin, uint32_t mode, uint32_t pull
 		HAL_GPIO_WritePin(port, pin, pin_state);
 	}
 }
+
+void print_system_info()
+{
+	comm_itf_print_string("******************************************\r\n");
+	comm_itf_print_string("*** System Info ***\r\n");
+	comm_itf_print_string("PX4-Blockset v. 1.1\r\n");
+	comm_itf_print_string("FreeRTOS     v. 9.0.0\n");
+	comm_itf_print_string("FatFs        v. R0.13c\r\n");
+	comm_itf_print_string("STM32F4_HAL  v. 1.19.0\r\n");
+	comm_itf_print_string("******************************************\r\n");
+}
+
+
+
+
+
+

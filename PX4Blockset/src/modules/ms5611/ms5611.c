@@ -5,7 +5,7 @@ static uint32_t _converting_switch = DISABLE;
 static uint32_t _ms5611_runtime = 0U;
 static uint32_t _D1 = 0U;
 static uint32_t _D2 = 0U;
-static uint64_t _converting_start = 0U;
+static uint32_t _converting_start = 0U;
 
 static uint16_t _C[7];
 
@@ -17,7 +17,7 @@ uint32_t _get_meas_value();
 
 void px4_ms5611_update()
 {
-	uint64_t start = tic();
+	uint32_t start = tic();
 
 	if (_module_state == DISABLE)
 	{
@@ -25,11 +25,14 @@ void px4_ms5611_update()
 	}
 
 	// still converting value
-	if ((uint32_t) toc(_converting_start) < 10000U)
+	if (toc(_converting_start) < 10000U)
 	{
 		return; // nothing to do
 	}
 
+	// set spi speed (~20MHZ)
+	px4_spi_drv_set_clock_speed(PX4_SPI1, SPI_DRV_PRESCALER_4);
+	
 	if (_converting_switch == ENABLE) //	D1 conversion is over => switch
 	{
 		_D1 = _get_meas_value();
@@ -63,7 +66,7 @@ void px4_ms5611_update()
 		_calc_values();
 	}
 
-	_ms5611_runtime = (uint32_t) toc(start);
+	_ms5611_runtime = toc(start);
 }
 
 void _calc_values()
@@ -154,6 +157,7 @@ void px4_ms5611_init()
 	memset(&_ms5611_data_storage, 0, sizeof(_ms5611_data_storage));
 	memset(_C, 0, sizeof(_C));
 
+	px4_spi_drv_init(PX4_SPI1);
 	_ms5611_init_sensor();
 	_module_state = ENABLE;
 	debug_print_string("ms5611 init ok \r\n");

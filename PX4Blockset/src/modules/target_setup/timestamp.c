@@ -1,58 +1,84 @@
 #include "timestamp.h"
 
-static uint32_t fac = 0;
+static uint32_t RTOS_Timer_offset = 0;
+static TIM_HandleTypeDef TimHandleTimeStamp;
 
-void timestamp_init(void)
+ErrorStatus timestamp_init(void)
 {
-	 fac = HAL_RCC_GetSysClockFreq()/1000000;
+	RCC_ClkInitTypeDef clkconfig;
+	uint32_t uwTimclock, uwAPB1Prescaler = 0U;
+	uint32_t uwPrescalerValue = 0U;
+	uint32_t pFLatency;
+
+	__HAL_RCC_TIM5_CLK_ENABLE();
+
+	HAL_RCC_GetClockConfig(&clkconfig, &pFLatency);
+
+	uwAPB1Prescaler = clkconfig.APB1CLKDivider;
+
+	if (uwAPB1Prescaler == RCC_HCLK_DIV1)
+	{
+		uwTimclock = HAL_RCC_GetPCLK1Freq();
+	}
+	else
+	{
+		uwTimclock = 2 * HAL_RCC_GetPCLK1Freq();
+	}
+
+	/* Compute the prescaler value to have TIM6 counter clock equal to 1MHz (count every 1탎) */
+	uwPrescalerValue = (uint32_t) ((uwTimclock / 1000000U) - 1U);
+
+	/* Initialize TIM6 */
+	TimHandleTimeStamp.Instance = TIM5;
+	TimHandleTimeStamp.Init.Period = UINT32_MAX;
+	TimHandleTimeStamp.Init.Prescaler = uwPrescalerValue;
+	TimHandleTimeStamp.Init.ClockDivision = 0;
+	TimHandleTimeStamp.Init.CounterMode = TIM_COUNTERMODE_UP;
+
+	if (HAL_TIM_Base_Init(&TimHandleTimeStamp) != HAL_OK)
+	{
+		/* Start the TIM time Base generation in interrupt mode */
+		return ERROR;
+	}
+
+	if (HAL_TIM_Base_Start(&TimHandleTimeStamp) != HAL_OK)
+	{
+		return ERROR;
+	}
+
+	/* Return function status */
+	return SUCCESS;
+
 }
 
-uint64_t calc_on_overrun(uint64_t tic, uint64_t toc)
+// returns current time since cpu start
+uint32_t tic()
 {
-	uint64_t tic_us = tic % 1000;
-	uint64_t toc_us = toc % 1000;
-	
-	uint64_t tic_ms = tic / 1000;
-	uint64_t toc_ms = toc / 1000;
-	
-	uint64_t ret = ((uint64_t)UINT32_MAX - tic_ms) + toc_ms;
-
-	ret += (1000 - tic_us) + toc_us;
-	
-	return ret;
-}
-
-uint64_t getCurrentTimeStamp_uS()
-{
-	uint64_t ms = HAL_GetTick();	// milliseconds since cpu start
-	uint64_t us = (SysTick->LOAD - SysTick->VAL) / fac; // elapsed time in 탎econds since new millisecond has begun
-	
-	// return timestamp in 탎econds since cpu start
-	return (ms * 1000U) + us;
-}
-
-// returns timestamp in 탎econds
-uint64_t tic()
-{
-	return getCurrentTimeStamp_uS();
+	return TimHandleTimeStamp.Instance->CNT;
 }
 
 // calculates difference in 탎econds from given tic
-uint64_t toc(uint64_t tic)
+uint32_t toc(uint32_t t1)
 {
-	uint64_t toc = getCurrentTimeStamp_uS();
+	uint32_t ret = 0;
+	uint32_t t2 = TimHandleTimeStamp.Instance->CNT;
 
-	if(tic <= toc)
-		return toc-tic;
+	if(t1 <= t2)
+		ret = t2 - t1;
 	else
-		return calc_on_overrun(tic, toc); // occurs once after ~49 days runtime
+		ret = (UINT32_MAX - t2) + t1; // occurs after 1,19 hours
+
+	return ret;
 }
 
-void delay_us(uint32_t us)
+/************************/
+/* RTOS Hooks */
+void vHookSetupTimerForRunTimeStats(void)
 {
-	uint64_t start = tic();
+	RTOS_Timer_offset = tic();
+}
 
-	do
-	{}
-	while((uint32_t)toc(start) < us);
+uint32_t vHookGetRunTimerCounterValue(void)
+{
+	return tic() - RTOS_Timer_offset;
 }

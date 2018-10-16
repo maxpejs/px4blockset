@@ -12,6 +12,7 @@
 #define COMMON_LOG_OFF				"log off"
 #define COMMON_LOG_RUNTIMES			"log runtime"
 #define COMMON_LOG_SIM_SIGNALS  	"log sim"
+#define TASK_LOAD 					"taskload"
 
 #define SD_CARD_LIST_FILE  			"list "
 #define SD_CARD_DEL_FILE  			"del "
@@ -50,6 +51,10 @@ typedef struct
 static void process_received_cmd(void);
 static void check_rx_buff(void);
 static void print_help();
+void print_task_load();
+
+void process_cyclic_print(void );
+
 
 /*
  * global variables
@@ -64,15 +69,11 @@ static st_print_map_st _print_map;
 static uint32_t _rx_idx = 0;
 static uint32_t _parse_idx = 0;
 
-static uint32_t last_tick = 0;
-static uint32_t update_time = 1000;
-
-
 UART_HandleTypeDef CommUart;
 
 void comm_itf_print_string(const char * str)
 {
-	HAL_UART_Transmit(&CommUart, (uint8_t*)str, strlen(str), 100);
+	HAL_UART_Transmit(&CommUart, (uint8_t*)str, strlen(str), 10);
 }
 
 void comm_itf_print_float(float val)
@@ -132,7 +133,8 @@ void comm_itf_init()
 	}
 
 	_moule_state = ENABLE;
-	debug_print_string("comm module init ok \r\n");
+
+	debug_print_string("\n\n\ncomm module init ok \r\n");
 }
 
 static void check_rx_buff()
@@ -143,7 +145,7 @@ static void check_rx_buff()
 		_rx_buff[_rx_idx] = 0;							// delete copied char from rx buff
 
 		_rx_idx++;
-		_rx_idx %= RX_BUFFER_SIZE;			// check receive buffer index, avoid overflow
+		_rx_idx %= RX_BUFFER_SIZE;			// avoid buffer access violation
 
 		if (_parser_buff[_parse_idx] == 10)	// if 'NL' char received
 		{
@@ -152,24 +154,19 @@ static void check_rx_buff()
 			break;
 		}
 		_parse_idx++;
-		_parse_idx %= PARSER_BUFFER_SIZE;	// check parser buffer index, avoid overflow
+		_parse_idx %= PARSER_BUFFER_SIZE;	// avoid buffer access violation
 	}
 }
 
-void comm_itf_process_tick()
+void comm_itf_task_function(void const * argv)
 {
 	if (_moule_state == DISABLE)
 	{
 		return;
 	}
 
-	if ((HAL_GetTick() - last_tick) < update_time)
-	{
-		return;
-	}
-
-	last_tick = HAL_GetTick();
-
+	// ===============================================
+	// process interaction with user
 	check_rx_buff();
 
 	if (_cmd_received == COMPLETED)
@@ -178,155 +175,178 @@ void comm_itf_process_tick()
 		_cmd_received = NOT_COMPLETED;
 	}
 
-	if (_print_map.mag)
-	{
-		hmc5883_data_st data;
-		px4_hmc5883_get(&data);
-		comm_itf_print_string("mag: ");
-		comm_itf_print_float(data.magX);
-		comm_itf_print_string(" ");
-		comm_itf_print_float(data.magY);
-		comm_itf_print_string(" ");
-		comm_itf_print_float(data.magZ);
-		comm_itf_print_string("\r\n");
-	}
+	// ===============================================
+	process_cyclic_print();
 
-	if (_print_map.mpu_acc)
-	{
-		mpu6000_data_st data;
-		px4_mpu6000_get(&data);
-		comm_itf_print_string("mpu_acc ");
-		comm_itf_print_float(data.accel_x);
-		comm_itf_print_string(" ");
-		comm_itf_print_float(data.accel_y);
-		comm_itf_print_string(" ");
-		comm_itf_print_float(data.accel_z);
-		comm_itf_print_string("\r\n");
-	}
+	// ===============================================
+	// check logging queues from other tasks
+	px4_task * task = (px4_task*) argv;
 
-	if (_print_map.mpu_gyro)
-	{
-		mpu6000_data_st data;
-		px4_mpu6000_get(&data);
-		comm_itf_print_string("mpu_gyro ");
-		comm_itf_print_float(data.gyro_x);
-		comm_itf_print_string(" ");
-		comm_itf_print_float(data.gyro_y);
-		comm_itf_print_string(" ");
-		comm_itf_print_float(data.gyro_z);
-		comm_itf_print_string("\r\n");
-	}
+	QueueHandle_t xQueueThatContainsData = NULL;
+	char *pcReceivedString = NULL;
 
-	if (_print_map.cpu_load)
+	do
 	{
-		comm_itf_print_string("cpu load:");
-		comm_itf_print_int(cpu_load_get_curr_cpu_load());
-		comm_itf_print_string("% peak:");
-		comm_itf_print_int(cpu_load_get_max_cpu_load());
-		comm_itf_print_string("%\r\n");
-	}
-
-	if (_print_map.gps_pos)
-	{
-		gps_rmc_packet_st pack;
-		px4_gps_get(&pack);
-		comm_itf_print_string("gps pos. lat: ");
-		comm_itf_print_float(pack.Latitude);
-		comm_itf_print_string(" lon: ");
-		comm_itf_print_float(pack.Longitude);
-		comm_itf_print_string(" valid:");
-		comm_itf_print_int(pack.Valid);
-		comm_itf_print_string("\r\n");
-	}
-
-	if (_print_map.gps_raw)
-	{
-		uint8_t tmp[GPS_SENTENCE_BUFF_SIZE];
-		px4_gps_get_raw(tmp);
-		comm_itf_print_string((const char *) tmp);
-		comm_itf_print_string("\r\n");
-	}
-
-	if (_print_map.baro)
-	{
-		ms5611_data_st data;
-		px4_ms5611_get(&data);
-		comm_itf_print_string("baro: ");
-		comm_itf_print_float(data.baroValue);
-		comm_itf_print_string("\r\n");
-	}
-
-	if (_print_map.rc_input)
-	{
-		rc_ppm_input_data_st data;
-		px4_rc_ppm_input_get(&data);
-
-		if (data.channel_cnt > 0)
+		xQueueThatContainsData = (QueueHandle_t) xQueueSelectFromSet(task->queueSet, portMAX_DELAY);
+		if (xQueueThatContainsData != NULL)
 		{
-			for (uint32_t i = 0; i < data.channel_cnt; i++)
-			{
-				comm_itf_print_string(" ch");
-				comm_itf_print_int(i + 1);
-				comm_itf_print_string(":");
-				comm_itf_print_int(data.channels[i]);
-			}
+			xQueueReceive(xQueueThatContainsData, &pcReceivedString, 0);
+			comm_itf_print_string(pcReceivedString);
+		}
+	} while (xQueueThatContainsData != NULL);
+}
+
+void process_cyclic_print(void)
+{
+	if (_print_map.mag)
+		{
+			hmc5883_data_st data;
+			px4_hmc5883_get(&data);
+			comm_itf_print_string("mag: ");
+			comm_itf_print_float(data.magX);
+			comm_itf_print_string(" ");
+			comm_itf_print_float(data.magY);
+			comm_itf_print_string(" ");
+			comm_itf_print_float(data.magZ);
 			comm_itf_print_string("\r\n");
 		}
-		else
+
+		if (_print_map.mpu_acc)
 		{
-			comm_itf_print_string("no rc input data\r\n");
+			mpu6000_data_st data;
+			px4_mpu6000_get(&data);
+			comm_itf_print_string("mpu_acc ");
+			comm_itf_print_float(data.accel_x);
+			comm_itf_print_string(" ");
+			comm_itf_print_float(data.accel_y);
+			comm_itf_print_string(" ");
+			comm_itf_print_float(data.accel_z);
+			comm_itf_print_string("\r\n");
 		}
-	}
 
-	if (_print_map.runtimes)
-	{
-		comm_itf_print_string("Runtimes (µs). ");
+		if (_print_map.mpu_gyro)
+		{
+			mpu6000_data_st data;
+			px4_mpu6000_get(&data);
+			comm_itf_print_string("mpu_gyro ");
+			comm_itf_print_float(data.gyro_x);
+			comm_itf_print_string(" ");
+			comm_itf_print_float(data.gyro_y);
+			comm_itf_print_string(" ");
+			comm_itf_print_float(data.gyro_z);
+			comm_itf_print_string("\r\n");
+		}
 
-		comm_itf_print_string("app: ");
-		comm_itf_print_int(app_runtime);
+		if (_print_map.cpu_load)
+		{
+			comm_itf_print_string("cpu load:");
+			comm_itf_print_int(cpu_load_get_curr_cpu_load());
+			comm_itf_print_string("% peak:");
+			comm_itf_print_int(cpu_load_get_max_cpu_load());
+			comm_itf_print_string("%\r\n");
+		}
 
-		comm_itf_print_string(" rc: ");
-		comm_itf_print_int(px4_rc_ppm_input_getruntime());
+		if (_print_map.gps_pos)
+		{
+			gps_rmc_packet_st pack;
+			px4_gps_get(&pack);
+			comm_itf_print_string("gps pos. lat: ");
+			comm_itf_print_float(pack.Latitude);
+			comm_itf_print_string(" lon: ");
+			comm_itf_print_float(pack.Longitude);
+			comm_itf_print_string(" valid:");
+			comm_itf_print_int(pack.Valid);
+			comm_itf_print_string("\r\n");
+		}
 
-		comm_itf_print_string(", main: ");
-		comm_itf_print_int(px4_pwm_main_out_getruntime());
-		
-		comm_itf_print_string(", aux: ");
-		comm_itf_print_int(px4_pwm_aux_out_getruntime());
-		
-		comm_itf_print_string(", mpu6000: ");
-		comm_itf_print_int(px4_mpu6000_get_runtime());
+		if (_print_map.gps_raw)
+		{
+			uint8_t tmp[GPS_SENTENCE_BUFF_SIZE];
+			px4_gps_get_raw(tmp);
+			comm_itf_print_string((const char *) tmp);
+			comm_itf_print_string("\r\n");
+		}
 
-		comm_itf_print_string(", ms5611: ");
-		comm_itf_print_int(px4_ms5611_get_runtime());
+		if (_print_map.baro)
+		{
+			ms5611_data_st data;
+			px4_ms5611_get(&data);
+			comm_itf_print_string("baro: ");
+			comm_itf_print_float(data.baroValue);
+			comm_itf_print_string("\r\n");
+		}
 
-		comm_itf_print_string(", hmc5883: ");
-		comm_itf_print_int(px4_hmc5883_getruntime());
+		if (_print_map.rc_input)
+		{
+			rc_ppm_input_data_st data;
+			px4_rc_ppm_input_get(&data);
 
-		comm_itf_print_string(", cLED: ");
-		comm_itf_print_int(px4_color_power_led_getruntime());
-		
-		uint32_t * gpsruntimes = px4_gps_getruntimes();
-		comm_itf_print_string(", gps parse: ");
-		comm_itf_print_int(gpsruntimes[0]);
-		
-		comm_itf_print_string(", gps updt: ");
-		comm_itf_print_int(gpsruntimes[1]);
-		
-		comm_itf_print_string(", gps crc: ");
-		comm_itf_print_int(gpsruntimes[2]);
-		
-		comm_itf_print_string(", gps it: ");
-		comm_itf_print_int(gpsruntimes[3]);
+			if (data.channel_cnt > 0)
+			{
+				for (uint32_t i = 0; i < data.channel_cnt; i++)
+				{
+					comm_itf_print_string(" ch");
+					comm_itf_print_int(i + 1);
+					comm_itf_print_string(":");
+					comm_itf_print_int(data.channels[i]);
+				}
+				comm_itf_print_string("\r\n");
+			}
+			else
+			{
+				comm_itf_print_string("no rc input data\r\n");
+			}
+		}
 
-		comm_itf_print_string(", sig_log: ");
-		comm_itf_print_int(px4_signal_output_getruntime());
+		if (_print_map.runtimes)
+		{
+			comm_itf_print_string("Runtimes (µs). ");
 
-		comm_itf_print_string(", sd_log: ");
-		comm_itf_print_int(px4_sd_card_logger_getruntime());
+			comm_itf_print_string("app: ");
+			comm_itf_print_int(app_runtime);
 
-		comm_itf_print_string("\r\n");
-	}
+			comm_itf_print_string(" rc: ");
+			comm_itf_print_int(px4_rc_ppm_input_getruntime());
+
+			comm_itf_print_string(", main: ");
+			comm_itf_print_int(px4_pwm_main_out_getruntime());
+
+			comm_itf_print_string(", aux: ");
+			comm_itf_print_int(px4_pwm_aux_out_getruntime());
+
+			comm_itf_print_string(", mpu6000: ");
+			comm_itf_print_int(px4_mpu6000_get_runtime());
+
+			comm_itf_print_string(", ms5611: ");
+			comm_itf_print_int(px4_ms5611_get_runtime());
+
+			comm_itf_print_string(", hmc5883: ");
+			comm_itf_print_int(px4_hmc5883_getruntime());
+
+			comm_itf_print_string(", cLED: ");
+			comm_itf_print_int(px4_color_power_led_getruntime());
+
+			uint32_t * gpsruntimes = px4_gps_getruntimes();
+			comm_itf_print_string(", gps parse: ");
+			comm_itf_print_int(gpsruntimes[0]);
+
+			comm_itf_print_string(", gps updt: ");
+			comm_itf_print_int(gpsruntimes[1]);
+
+			comm_itf_print_string(", gps crc: ");
+			comm_itf_print_int(gpsruntimes[2]);
+
+			comm_itf_print_string(", gps it: ");
+			comm_itf_print_int(gpsruntimes[3]);
+
+			comm_itf_print_string(", sig_log: ");
+			comm_itf_print_int(px4_signal_output_getruntime());
+
+			comm_itf_print_string(", sd_log: ");
+			comm_itf_print_int(px4_sd_card_logger_getruntime());
+
+			comm_itf_print_string("\r\n");
+		}
 }
 
 void process_received_cmd(void)
@@ -386,6 +406,10 @@ void process_received_cmd(void)
 	{
 		px4_sd_card_logger_process_cmd(buff);
 	}
+	else if (strncmp(buff, TASK_LOAD, strlen(TASK_LOAD)) == 0)
+	{
+		print_task_load();
+	}
 	else if (strncmp(buff, "help", 4) == 0)
 	{
 		print_help();
@@ -419,13 +443,40 @@ void print_help()
 	comm_itf_print_string("'list <filename>' - list the logfile with name <filename> on console\r\n");
 	comm_itf_print_string("'del all' 		 - delete all log files \r\n");
 	comm_itf_print_string("'del <filename>'  - delete the logfile with name <filename>\r\n");
+
 	comm_itf_print_string("\r\nOTHER COMANDS\r\n");
 	comm_itf_print_string("-------------\r\n");
 	comm_itf_print_string("'log cpu' 		- log cpu usage \r\n");
 	comm_itf_print_string("'log runtime'	- log calculated runtimes of all modules\r\n");
 	comm_itf_print_string("'log off' 		- disable all logging \r\n");
+	comm_itf_print_string("'taskload' 		- log task cpu usage since system start\r\n");
+	comm_itf_print_string("'top' 			- log cyclic task cpu usage\r\n");
+
+	comm_itf_print_string("===============================\r\n");
 }
 
+void print_task_load()
+{
+	TaskStatus_t val[10];
+	uint32_t total = 1;
+	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, 10, &total);
+
+	debug_print_string("TASK INFORMATION\n-------------------------");
+	debug_print_string("\nTask name \t Stack water mark \t %CPU \n");
+	for (unsigned int i = 0; i < size; i++)
+	{
+		debug_print_string(val[i].pcTaskName);
+
+		debug_print_string("\t");
+		debug_print_int(val[i].usStackHighWaterMark);
+
+		debug_print_string("\t");
+		debug_print_int((val[i].ulRunTimeCounter * 100)/total);
+
+		debug_print_string("\n");
+	}
+	debug_print_string("\n-------------------------\n");
+}
 
 /***********************************************************/
 #ifdef DEBUG

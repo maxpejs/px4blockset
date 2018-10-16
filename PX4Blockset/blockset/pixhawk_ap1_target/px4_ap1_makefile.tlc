@@ -63,18 +63,18 @@ CFLAGS += -DUSE_STM324xG_EVAL
 
 
 # enable follow hal driver modules
-CFLAGS += -DHAL_MODULE_ENABLED
-CFLAGS += -DHAL_FLASH_MODULE_ENABLED
-CFLAGS += -DHAL_PWR_MODULE_ENABLED
-CFLAGS += -DHAL_RCC_MODULE_ENABLED
-CFLAGS += -DHAL_CORTEX_MODULE_ENABLED
-CFLAGS += -DHAL_GPIO_MODULE_ENABLED
-CFLAGS += -DHAL_DMA_MODULE_ENABLED
-CFLAGS += -DHAL_TIM_MODULE_ENABLED
-CFLAGS += -DHAL_UART_MODULE_ENABLED
-CFLAGS += -DHAL_SPI_MODULE_ENABLED
-CFLAGS += -DHAL_I2C_MODULE_ENABLED
-CFLAGS += -DHAL_SD_MODULE_ENABLED
+#CFLAGS += -DHAL_MODULE_ENABLED
+#CFLAGS += -DHAL_FLASH_MODULE_ENABLED
+#CFLAGS += -DHAL_PWR_MODULE_ENABLED
+#CFLAGS += -DHAL_RCC_MODULE_ENABLED
+#CFLAGS += -DHAL_CORTEX_MODULE_ENABLED
+#CFLAGS += -DHAL_GPIO_MODULE_ENABLED
+#CFLAGS += -DHAL_DMA_MODULE_ENABLED
+#CFLAGS += -DHAL_TIM_MODULE_ENABLED
+#CFLAGS += -DHAL_UART_MODULE_ENABLED
+#CFLAGS += -DHAL_SPI_MODULE_ENABLED
+#CFLAGS += -DHAL_I2C_MODULE_ENABLED
+#CFLAGS += -DHAL_SD_MODULE_ENABLED
 
 
 %% other defines
@@ -87,6 +87,9 @@ CFLAGS += -DDEBUG
 CFLAGS += -IFatFs/Core
 CFLAGS += -IFatFs/Drivers
 
+CFLAGS += -IFreeRTOS/Source/CMSIS_RTOS
+CFLAGS += -IFreeRTOS/Source/include
+CFLAGS += -IFreeRTOS/Source/portable/GCC/ARM_CM4F
 
 # Compiler flags assembled files
 AFLAGS = $(CFLAGS)
@@ -97,7 +100,15 @@ LFLAGS = -T$(LDSCRIPT) -g -Wl,-Map=$(MAP),--cref,--no-warn-mismatch -mcpu=cortex
 # substitutions
 AS_SRCS = $(wildcard *.s)
 AS_OBJS = $(AS_SRCS:.s=.o)
-C_SRCS = $(wildcard *.c) $(wildcard FatFs/Core/*.c) $(wildcard FatFs/Drivers/*.c)
+
+C_SRCS =  $(wildcard *.c) 
+C_SRCS += $(wildcard FatFs/Core/*.c) 
+C_SRCS += $(wildcard FatFs/Drivers/*.c)
+C_SRCS += $(wildcard FreeRTOS/Source/*.c) 
+C_SRCS += $(wildcard FreeRTOS/Source/CMSIS_RTOS/*.c) 
+C_SRCS += $(wildcard FreeRTOS/Source/portable/GCC/ARM_CM4F/*.c) 
+C_SRCS += $(wildcard FreeRTOS/Source/portable/MemMang/*.c)
+
 C_OBJS = $(C_SRCS:.c=.o)
 
 OBJS = $(AS_OBJS) $(C_OBJS)

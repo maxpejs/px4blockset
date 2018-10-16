@@ -61,9 +61,9 @@ typedef struct
   */ 
 typedef struct
 { 
-  uint8_t                 is_initialized[_VOLUMES];
-  Diskio_drvTypeDef       *drv[_VOLUMES];
-  uint8_t                 lun[_VOLUMES];
+  uint8_t                 is_initialized[FF_VOLUMES];
+  Diskio_drvTypeDef       *drv[FF_VOLUMES];
+  uint8_t                 lun[FF_VOLUMES];
   __IO uint8_t            nbr;
 
 }Disk_drvTypeDef;

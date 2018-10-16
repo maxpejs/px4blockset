@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (C) 2016, Max Pejs <max.pejs@googlemail.com>
+*   Copyright (C) 2018, Max Pejs <max.pejs@googlemail.com>
 *	All rights reserved.
 *
 * 	Redistribution and use in source and binary forms, with or without 
@@ -28,50 +28,46 @@
 *	THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
 *	DAMAGE.
 *****************************************************************************/
-
-#ifndef COMM_ITF_H
-#define COMM_ITF_H
-
+#ifndef LOGGER_RING_BUFFER_H
+#define LOGGER_RING_BUFFER_H
 #include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-#include <cmsis_os.h>
+#define SIGNAL_MAX_CNT 		10
+#define RING_BUFF_SIZE		200
 
-#include <stm32f4xx_hal.h>
-#include <defines.h>
-#include <error_handler.h>
-#include <cpu_load.h>
-#include <mpu6000.h>
-#include <hmc5883.h>
-#include <gps.h>
-#include <rc_ppm_input.h>
-#include <pwm_main_out.h>
-#include <pwm_aux_out.h>
-#include <color_power_led.h>
-#include <signal_output.h>
-#include <sd_card_logger.h>
-#include <ms5611.h>
-#include <utilities.h>
-#include <tasks.h>
+typedef struct
+{
+	uint32_t timestamp;
+	float val[SIGNAL_MAX_CNT];
+}data_st;
 
-uint32_t app_runtime;
+typedef struct
+{
+	uint32_t read;
+	uint32_t write;
+	data_st buff[RING_BUFF_SIZE];
+}ring_buff_data_st;
 
-/* regular functions for printing any pixhawk sensor informations like calibration info */
-void comm_itf_init();
-void comm_itf_rx_complete_event(void);
-void comm_itf_task_function(void const * argv);
+/**
+*	TODO
+*/
+uint32_t _ring_buffer_full(ring_buff_data_st * b);
 
-/* debug functions */
-void debug_print_int(int val);
-void debug_print_float(float val);
-void debug_print_string(const char * str);
+/**
+*	TODO
+*/
+uint32_t _ring_buffer_empty(ring_buff_data_st * b);
 
-/* print functions */
-void comm_itf_print_int(int val);
-void comm_itf_print_float(float val);
-void comm_itf_print_string(const char * str);
-	
+/**
+*	TODO
+*/
+uint32_t _ring_buffer_free_space(ring_buff_data_st * b);
 
-#endif // COMM_ITF_H
+/**
+*	TODO
+*/
+uint32_t _ring_buffer_count(ring_buff_data_st * b);
+
+
+
+#endif // LOGGER_RING_BUFFER_H

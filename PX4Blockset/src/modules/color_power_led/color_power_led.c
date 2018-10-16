@@ -1,11 +1,10 @@
 #include "color_power_led.h"
 
 static uint32_t _module_state = DISABLE;
-static uint32_t _RGB[3] = {0, 0, 0};
-static uint32_t _new_value = 1;
+static color_led_data_st _RGB_out, _RGB_last;
 
-static uint32_t _color_power_led_runtime		= 0;
-static uint32_t _color_power_led_max_runtime	= 0;
+static uint32_t _runtime		= 0;
+static uint32_t _max_runtime	= 0;
 
 static int color_power_led_enable(void);
 
@@ -13,6 +12,8 @@ void px4_color_power_led_init()
 {
 	px4_i2c_drv_init(COLOR_LED_I2C_ITF);
 	px4_i2c_drv_set_clock_speed(COLOR_LED_I2C_ITF, COLOR_LED_CLK_SPEED);
+
+	memset(&_RGB_out, 0, sizeof(_RGB_out));
 
 	if (color_power_led_enable() == SUCCESS)
 	{
@@ -27,60 +28,48 @@ void px4_color_power_led_init()
 
 void px4_color_power_led_update()
 {
-	uint64_t start = tic();
+	uint32_t start = tic();
 
 	if (_module_state == DISABLE)
 	{
-		// module not used, nothing to do
+		// nothing to do
 		return;
 	}
 
+	// copy to avoid inconsistency data
+	color_led_data_st temp;
+	memcpy(&temp, &_RGB_out, sizeof(color_led_data_st));
 
-	if (_new_value)
+	if (temp.r == _RGB_last.r && temp.g == _RGB_last.g && temp.b == _RGB_last.b)
 	{
-		uint32_t _RGB_scale[3];
-
-		for (int i = 0; i < 3; i++)
-		{
-			_RGB_scale[i] = (_RGB[i] * 16) / 256;
-		}
-
-		uint8_t msg[6] = { 	SUB_ADDR_PWM0, (uint8_t)_RGB_scale[2],
-							SUB_ADDR_PWM1, (uint8_t)_RGB_scale[1],
-							SUB_ADDR_PWM2, (uint8_t)_RGB_scale[0] };
-
-		int result = px4_i2c_drv_transmit(COLOR_LED_I2C_ITF, COLOR_LED_I2C_DEV_ADDR, msg, sizeof(msg));
-
-		// if no errors reset, otherwise try to set color on next call
-		if (result != ERROR)
-		{
-			_new_value = 0;
-			_color_power_led_runtime = (uint32_t)toc(start);
-		}
-		else
-		{
-			debug_print_string("err set rgb color\r\n");
-		}
-
-		if(_color_power_led_runtime > _color_power_led_max_runtime)
-			_color_power_led_max_runtime = _color_power_led_runtime;
+		// same color already set last call, so not necessary to do it once again (reduce runtime)
+		return;
 	}
+
+	uint8_t msg[6] = { BLUE_REG, (uint8_t)temp.b, GREEN_REG, (uint8_t)temp.g, RED_REG, (uint8_t)temp.r };
+
+	int result = px4_i2c_drv_transmit(COLOR_LED_I2C_ITF, COLOR_LED_I2C_DEV_ADDR, msg, sizeof(msg));
+
+	// if no errors mark as successful, otherwise try to set color on next call
+	if (result != ERROR)
+	{
+		memcpy(&_RGB_last, &temp, sizeof(color_led_data_st));
+		_runtime = toc(start);
+	}
+	else
+	{
+		debug_print_string("err set rgb color\r\n");
+	}
+
+	if (_runtime > _max_runtime)
+		_max_runtime = _runtime;
 }
 
 void px4_color_power_led_set(uint32_t r, uint32_t g, uint32_t b)
 {
-	if (_RGB[0] == r && _RGB[1] == g && _RGB[2] == b)
-	{
-		// no changes since last call
-		return;
-	}
-	else
-	{
-		_RGB[0] = r;
-		_RGB[1] = g;
-		_RGB[2] = b;
-		_new_value = 1;
-	}
+	_RGB_out.r = (r >> 4); // rescale to 16/256
+	_RGB_out.g = (g >> 4);
+	_RGB_out.b = (b >> 4);
 }
 
 int color_power_led_enable(void)
@@ -91,5 +80,5 @@ int color_power_led_enable(void)
 
 uint32_t px4_color_power_led_getruntime(void)
 {
-	return _color_power_led_runtime;
+	return _runtime;
 }

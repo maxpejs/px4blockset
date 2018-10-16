@@ -31,24 +31,13 @@
 #ifndef CPULOAD_H
 #define CPULOAD_H
 
-#include "stm32f4xx_hal.h"
 #include "inttypes.h"
-#include "timestamp.h"
+#include <cmsis_os.h>
 
 /**
 *	TODO
 */
-void cpu_load_init(uint32_t sTime_ms);
-
-/**	
-*	TODO
-*/
-void cpu_load_start_meas(void);
-
-/**
-*	TODO
-*/
-void cpu_load_stop_meas(void);
+void cpu_load_update(void const * argv);
 
 /**
 *	TODO
@@ -61,3 +50,4 @@ uint32_t cpu_load_get_curr_cpu_load(void);
 uint32_t cpu_load_get_max_cpu_load(void);
 
 #endif // CPULOAD_H
+

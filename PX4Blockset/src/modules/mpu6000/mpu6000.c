@@ -36,7 +36,7 @@ void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 
 void px4_mpu6000_update()
 {
-	uint64_t start = tic();
+	uint32_t start = tic();
 
 	if (_module_state == DISABLE)
 	{
@@ -65,7 +65,7 @@ void px4_mpu6000_update()
 	}
 	MPU6000_DISA;
 
-	_mpu6000_runtime = (uint32_t)toc(start);
+	_mpu6000_runtime = toc(start);
 }
 
 

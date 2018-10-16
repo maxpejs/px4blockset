@@ -1,57 +1,78 @@
-/****************************************************************************
+/**
 *
-*   Copyright (C) 2018, Max Pejs <max.pejs@googlemail.com>
-*	All rights reserved.
-*
-* 	Redistribution and use in source and binary forms, with or without 
-*	modification, are permitted provided that the following conditions 
-*	are met:
-*
-*	1. 	Redistributions of source code must retain the above copyright 
-*		notice, this list of conditions and the following disclaimer.
-*
-*	2. 	Redistributions in binary form must reproduce the above copyright 
-*		notice, this list of conditions and the following disclaimer in 
-*		the documentation and/or other materials provided with the 
-*		distribution.
-*
-*	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-*	"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
-*	LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
-*	FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
-*	COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-*	INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-*	BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-*	OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED 
-*	AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-*	OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF 
-*	THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH 
-*	DAMAGE.
-*****************************************************************************/
+*   @author Max Pejs <max.pejs@googlemail.com>
+*	@date 	2018
+*/
 #ifndef TASKS_H
 #define TASKS_H
 
-
-#include <mpu6000.h>
-#include <ms5611.h>
-#include <hmc5883.h>
-#include <gps.h>
-#include <fmu_amber_led.h>
-#include <rc_ppm_input.h>
-#include <pwm_aux_out.h>
-#include <pwm_main_out.h>
-#include <color_power_led.h>
-#include <sd_card_logger.h>
+#include <inttypes.h>
+#include <cmsis_os.h>
 
 /**
 *
 */
-void px4_tasks_read_inputs();
+typedef void (* callback_t)(void const * argv);
+
+typedef enum
+{
+	eAPPL = 0,
+	eAUX_PWM,
+	ePWM_MAIN,
+	eCOLORLED,
+	ePPM_INPUT,
+	eGPS,
+	eHMC5883,
+	eMPU6000,
+	eMS5611,
+	eSDCARD,
+	eSIGLOGGER,
+	eCOMMITF,
+	eCPU_LOAD,
+	eMaxCount
+}eTaskID;
+
+typedef enum
+{
+	ePrioIdle  			= osPriorityIdle,
+	ePrioLow 			= osPriorityLow,
+	ePrioBelowNormal	= osPriorityBelowNormal,
+	ePrioNormal 		= osPriorityNormal,
+	ePrioAboveNormal 	= osPriorityAboveNormal,
+	ePrioHigh			= osPriorityHigh,
+	ePrioRealTime		= osPriorityRealtime,
+	ePrioError 			= osPriorityError
+}eTaskPrio;
+
+
+typedef struct
+{
+	osThreadId 	threadID;
+	uint32_t 	stackSize;
+	uint32_t 	taskPrio;
+	char  		name[20];
+	uint32_t 	sampleTime;
+	callback_t 	taskFunction;
+	eTaskID 	taskID;
+	SemaphoreHandle_t * mutex;
+	QueueHandle_t msgQueue;
+	QueueSetHandle_t queueSet;
+}px4_task;
 
 /**
 *
 */
-void px4_tasks_write_outputs();
+void px4_tasks_initialize();
 
+
+/**
+*
+*/
+void px4_tasks_run();
+
+/**
+*
+*/
+void px4_tasks_register_task(eTaskID id, const char * name, callback_t func, uint32_t sampleTime, uint32_t stacksize, uint32_t taskPrio);
 
 #endif // TASKS_H

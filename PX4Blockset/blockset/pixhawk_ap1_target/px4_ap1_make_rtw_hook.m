@@ -200,6 +200,8 @@ filenameList{length(filenameList) + 1} = [path 'color_power_led\color_power_led.
 filenameList{length(filenameList) + 1} = [path 'color_power_led\color_power_led.c'];
 filenameList{length(filenameList) + 1} = [path 'utilities\utilities.h'];
 filenameList{length(filenameList) + 1} = [path 'utilities\utilities.c'];
+filenameList{length(filenameList) + 1} = [path 'utilities\logger_ring_buffer.h'];
+filenameList{length(filenameList) + 1} = [path 'utilities\logger_ring_buffer.c'];
 filenameList{length(filenameList) + 1} = [path 'signal_output\signal_output.h'];
 filenameList{length(filenameList) + 1} = [path 'signal_output\signal_output.c'];
 filenameList{length(filenameList) + 1} = [path 'ms5611\ms5611.h'];
@@ -216,6 +218,7 @@ filenameList{length(filenameList) + 1} = [basePath 'src\third party\protocol.h']
 filenameList{length(filenameList) + 1} = [basePath 'src\third party\board\stm324xg_eval_sd.h'];
 filenameList{length(filenameList) + 1} = [basePath 'src\third party\board\stm324xg_eval_sd.c'];
 
+filenameList{length(filenameList) + 1} = [basePath 'src\third party\FreeRTOS\stm32f4xx_hal_timebase_tim.c'];
 
 %% startup and toolchain files
 path = [basePath 'tools\px4_toolchain\'];
@@ -253,6 +256,7 @@ end
 % Workaround: copy files into scecific folder in the target folder
 copyfile([basePath 'src\drivers\STM32F4xx_HAL_Driver\inc\Legacy'],  [pwd '\Legacy'], 'f');
 copyfile([basePath 'src\third party\FatFs'],  [pwd '\FatFs'], 'f');
+copyfile([basePath 'src\third party\FreeRTOS'],  [pwd '\FreeRTOS'], 'f');
 end
 
 %%

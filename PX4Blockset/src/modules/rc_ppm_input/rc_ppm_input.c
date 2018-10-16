@@ -17,7 +17,7 @@ void px4_rc_ppm_input_init(void)
 	debug_print_string("rc_ppm_input init ok\r\n");
 }
 
-void px4_rc_ppm_input_update(void)
+void px4_rc_ppm_input_task_function(void const * argv)
 {
 	uint64_t start = tic();
 

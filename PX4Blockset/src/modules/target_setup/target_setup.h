@@ -31,14 +31,11 @@
 #ifndef TARGET_SETUP_H
 #define TARGET_SETUP_H 
 
-#include "stm32f4xx_hal.h"
-#include "error_handler.h"
-#include "comm_itf.h"
-#include "fmu_amber_led.h"
-
 /**
 * TODO
 */
 void px4_target_setup_init(void);
+
+void print_system_info(void);
 
 #endif // TARGET_SETUP_H

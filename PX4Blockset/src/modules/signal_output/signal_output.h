@@ -31,14 +31,10 @@
 #ifndef SIGNAL_OUTPUT_H
 #define SIGNAL_OUTPUT_H
 
-#include "defines.h"
-#include "timestamp.h"
-#include "comm_itf.h"
-
 /**
 *	TODO
 */
-void px4_signal_output_init(uint32_t sample_time, uint32_t sig_cnt);
+void px4_signal_output_init(uint32_t sample_time_ms, uint32_t sig_cnt);
 
 /**
 *	TODO

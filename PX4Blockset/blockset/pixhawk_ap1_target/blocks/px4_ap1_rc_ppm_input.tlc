@@ -4,6 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %function BlockTypeSetup(block, system) void
 	%<LibAddToCommonIncludes("rc_ppm_input.h")>
+	%<LibAddToCommonIncludes("tasks.h")>
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -13,6 +14,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %function Start(block, system) Output
     px4_rc_ppm_input_init();
+	px4_tasks_register_task(ePPM_INPUT, "rc_in", px4_rc_ppm_input_update, 100, 0, ePrioNormal);
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -24,7 +26,7 @@
     %foreach signal = 18
         %if FEVAL("int8", Parameter[idx].Value[0])
             %assign y = LibBlockOutputSignal(portIdx, "", "", 0)
-    %<y> = rc_in_data.channels[%<idx>]; // ch %<idx+1>
+			%<y> = rc_in_data.channels[%<idx>]; // ch %<idx+1>
             %assign portIdx = portIdx + 1
         %endif
         %assign idx = idx + 1

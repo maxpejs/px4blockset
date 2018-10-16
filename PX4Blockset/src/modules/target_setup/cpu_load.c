@@ -1,33 +1,36 @@
 #include "cpu_load.h"
+#include "string.h"
 
-static uint64_t _start 			= 0;
-static uint32_t _sampleTime_us 	= 0;
-static uint32_t _filt_depth 	= 100;
-static float _cpu_load_max 		= 0.f;
-static float _cpu_load_filt 	= 0.f;
-static float _cpu_load_act 		= 0.f;
+static uint32_t _filt_depth 		= 20;
+static float _cpu_load_max 			= 0.f;
+static float _cpu_load_filt 		= 0.f;
+static float _cpu_load_act 			= 0.f;
 
-void cpu_load_init(uint32_t sampleTime_ms)
+void cpu_load_update(void const * argv)
 {
-	_sampleTime_us = sampleTime_ms * 1000U;
-	timestamp_init();
-}
+	TaskStatus_t val[10];
+	uint32_t total = 1;
+	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, 10, &total);
 
-void cpu_load_start_meas(void)
-{
-	_start = tic();
-}
+	uint32_t cpuload = 0;
 
-void cpu_load_stop_meas(void)
-{
-	uint32_t runtime = (uint32_t)toc(_start);
-	
-	_cpu_load_act = (float)(( (float)runtime * 100.0f) / (float)_sampleTime_us); // cpu usage in %
-	
-	if(_cpu_load_act > _cpu_load_max)
-		_cpu_load_max = _cpu_load_act;
-	
+	for (uint32_t i = 0; i < size; i++)
+	{
+		if(strcmp(val[i].pcTaskName, "IDLE") == 0)
+		{
+			continue; // skip
+		}
+		// debug_print_int(val[i].xTaskNumber);
+		// debug_print_int(val[i].usStackHighWaterMark);
+		cpuload += val[i].ulRunTimeCounter;
+	}
+
+	_cpu_load_act = ((uint64_t) cpuload * 100) / total;
+
 	_cpu_load_filt = ((_cpu_load_filt * (_filt_depth - 1)) + _cpu_load_act) / _filt_depth;
+
+	if (_cpu_load_filt > _cpu_load_max)
+		_cpu_load_max = _cpu_load_filt;
 }
 
 uint32_t cpu_load_get_curr_cpu_load(void)

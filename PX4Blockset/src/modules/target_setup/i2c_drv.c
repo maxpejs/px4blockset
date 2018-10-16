@@ -1,4 +1,4 @@
-#include "spi_drv.h"
+#include "i2c_drv.h"
 
 #define CNT_I2C_ITF		4
 

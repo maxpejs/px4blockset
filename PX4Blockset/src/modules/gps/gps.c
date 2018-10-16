@@ -31,7 +31,7 @@ static 			void 		gps_setup_uart(uint32_t baud);
 
 
 /******* FOR TESTS *****************/
-uint64_t it_runtime_total = 0;
+uint32_t it_runtime_total = 0;
 uint32_t it_runtime_cnt = 0, it_runtime_cnt_last = 0;
 
 typedef enum
@@ -53,11 +53,10 @@ void px4_gps_update(void)
 		return;
 	}
 
-	uint8_t cnt = 0;
-	uint64_t start = tic();
+	uint32_t start = tic();
 
 	// parse just some chars during single call
-	while (!ring_buffer_empty(&_rb) && (cnt++ < 20))
+	while (!ring_buffer_empty(&_rb))
 	{
 		state_machine_process_new_byte(ring_buffer_pop(&_rb));
 	}
@@ -68,7 +67,7 @@ void px4_gps_update(void)
 		_rmc_storage.Valid = 0;
 	}
 
-	_runtimes_arr[1] = (uint32_t)toc(start);
+	_runtimes_arr[1] = toc(start);
 }
 
 void px4_gps_init(uint32_t baud)
@@ -122,9 +121,6 @@ static void gps_setup_uart(uint32_t baud)
 		debug_print_string("gps HAL_UART_Receive_IT err!\r\n");
 		error_handler(0);
 	}
-
-	// TODO set Delay to 10ms
-	HAL_Delay(100);
 }
 
 static void state_machine_process_new_byte(uint8_t rxChar)
@@ -184,9 +180,9 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 			{
 				// update receive time stamp
 				_time_rx_last_rmc_msg = HAL_GetTick();
-				uint64_t start = tic();
+				uint32_t start = tic();
 				parse_nmea_rmc_sentence(_parser_buff, &_rmc_storage);
-				_runtimes_arr[0] = (uint32_t)toc(start);
+				_runtimes_arr[0] = toc(start);
 
 				// TODO: use _char_idx for copy length
 				memcpy(_parser_buffer_last, _parser_buff, GPS_SENTENCE_BUFF_SIZE);
@@ -235,9 +231,8 @@ void px4_gps_get_raw(uint8_t * buff)
 
 void px4_gps_rx_complete_event()
 {
-	uint64_t start = tic();
+	uint32_t start = tic();
 
-	// debug_print_string("gps rx evt \r\n");
 	// if there are enought free space in the ring buffer
 	// move to next position, otherwise overwrite last position.
 	// this is more secure, in worst case one sentence can get lost
@@ -259,7 +254,7 @@ void px4_gps_rx_complete_event()
 
 static uint8_t calculate_nmea_crc(uint8_t * buff)
 {
-	uint64_t start = tic();
+	uint32_t start = tic();
 
 	uint8_t idx = 1; // skip first char: '$'
 	uint8_t ret = 0;
@@ -276,7 +271,7 @@ static uint8_t calculate_nmea_crc(uint8_t * buff)
 		}
 	} while (idx < GPS_SENTENCE_BUFF_SIZE);
 
-	_runtimes_arr[2] = (uint32_t) toc(start);
+	_runtimes_arr[2] = toc(start);
 
 	return ret;
 }

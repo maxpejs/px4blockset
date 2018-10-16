@@ -94,7 +94,7 @@ void px4_pwm_aux_out_init(uint16_t * pwm_freqs)
 
 void px4_pwm_aux_out_write_impulse(uint16_t * impulse_values)
 {
-	uint64_t start = tic();
+	uint32_t start = tic();
 
 	if(_module_ready == DISABLE)
 	{

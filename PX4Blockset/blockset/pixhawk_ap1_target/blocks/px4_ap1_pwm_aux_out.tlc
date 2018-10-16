@@ -16,6 +16,7 @@
 	%assign PWM_5_6 	= FEVAL("int16", Parameter[7].Value)
     uint16_t pwm_rates[] = {%<PWM_1_4>, %<PWM_5_6>};
     px4_pwm_aux_out_init(pwm_rates);
+	// px4_tasks_register_task(eAUX_PWM, "pwm_aux", px4_pwm_aux_out_update, 20, 0, ePrioNormal);
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

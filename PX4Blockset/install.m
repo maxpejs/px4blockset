@@ -26,6 +26,6 @@ choice = questdlg('Would you like to install a PX4 drivers?', 'PX4 windows drive
 % Handle response
 switch choice
     case 'Yes'
-         status = dos('C:\SVNs\MasterThesisPX4\trunk\3-Umsetzung\PX4_Blockset_Develop\tools\px4_win_driver\px4driver.msi');
+         status = dos('tools\px4_win_driver\px4driver.msi');
     case 'No'
 end

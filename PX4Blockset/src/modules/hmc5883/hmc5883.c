@@ -61,7 +61,7 @@ void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 
 void px4_hmc5883_update()
 {
-	uint64_t start = tic();
+	uint32_t start = tic();
 
 	if (_module_state == DISABLE)
 	{
@@ -91,7 +91,7 @@ void px4_hmc5883_update()
 	_hmc5883_data_storage.magZ = (float)TWO_UINT8_TO_INT16(rx[2], rx[3]) / scale;
 	_hmc5883_data_storage.magY = (float)TWO_UINT8_TO_INT16(rx[4], rx[5]) / scale;
 
-	_hmc5883_runtime = (uint32_t) toc(start);
+	_hmc5883_runtime = toc(start);
 }
 
 static uint32_t _get_scale(void)

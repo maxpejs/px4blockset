@@ -34,9 +34,7 @@
 #ifndef PWM_MAIN_OUT_H
 #define PWM_MAIN_OUT_H
 
-#include "pxio_driver.h"
-#include "defines.h"
-#include "timestamp.h"
+#include <inttypes.h>
 
 // pwm main output
 #define MAX_MAIN_OUT_SERVO_CNT 		8
@@ -83,7 +81,7 @@ void px4_pwm_main_out_set(pwm_main_out_data_st * data);
 /**
 *	Set pins to given pwm rates
 */
-void px4_pwm_main_out_update(void);
+void px4_pwm_main_out_task_function(void const * argv);
 
 /**
 *	Returns current runtime of tx command for set pwm impulse values to pxio
