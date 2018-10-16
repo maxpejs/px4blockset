@@ -150,7 +150,7 @@ int32_t my_dtoa(double val, char * str, uint32_t precision)
 				str[i] = str[i - 1];
 			}
 
-			str[idx - c] = ',';
+			str[idx - c] = '.';
 		}
 
 		idx++;
@@ -209,7 +209,7 @@ int32_t my_ftoa(float val, char * str, uint32_t precision)
 			{
 				str[i] = str[i - 1];
 			}
-			str[idx - c] = ',';
+			str[idx - c] = '.';
 		}
 
 		idx++;
