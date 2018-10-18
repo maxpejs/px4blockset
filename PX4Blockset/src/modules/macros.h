@@ -31,5 +31,4 @@
 // calculate macros
 #define TWO_UINT8_TO_INT16(a, b)	(int16_t)((uint16_t)(a << 8) | b)
 
-
 #endif // MACROS_H

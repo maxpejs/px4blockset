@@ -68,7 +68,7 @@ void px4_color_power_led_set(uint32_t r, uint32_t g, uint32_t b);
 /**
  *	Task for triggering the I2C-command to sets rgb led to internal stored channel values.
  */
-void px4_color_power_led_update();
+void px4_color_power_led_update(void const * argv);
 
 /**
  *	Returns current runtime of tx command

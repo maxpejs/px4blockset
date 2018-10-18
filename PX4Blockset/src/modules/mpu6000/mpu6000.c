@@ -34,7 +34,7 @@ void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 	debug_print_string("mpu6000 init ok\r\n");
 }
 
-void px4_mpu6000_update()
+void px4_mpu6000_task_function()
 {
 	uint32_t start = tic();
 

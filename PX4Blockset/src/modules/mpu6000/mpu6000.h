@@ -154,7 +154,7 @@ void px4_mpu6000_get(mpu6000_data_st * data);
 /**
  * TODO
  */
-void px4_mpu6000_update();
+void px4_mpu6000_task_function();
 
 /**
 *	Returns current runtime of txrx spi command for receiving acc + gyro values 

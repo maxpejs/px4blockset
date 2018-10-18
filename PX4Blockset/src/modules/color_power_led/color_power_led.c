@@ -26,8 +26,14 @@ void px4_color_power_led_init()
 	}
 }
 
-void px4_color_power_led_update()
+static int cnt = 0;
+
+void px4_color_power_led_update(void const * argv)
 {
+	UNUSED(argv);
+
+	px4debug(eCOLORLED, "px4_color_power_led_update: %d", cnt++);
+
 	uint32_t start = tic();
 
 	if (_module_state == DISABLE)

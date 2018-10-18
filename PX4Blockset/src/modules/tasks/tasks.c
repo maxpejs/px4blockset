@@ -1,3 +1,4 @@
+#include "comm_itf.h"
 #include "tasks.h"
 #include "defines.h"
 #include "mpu6000.h"
@@ -12,6 +13,7 @@
 #include "sd_card_logger.h"
 #include "cpu_load.h"
 
+
 #define MSG_QUEUE_SIZE	20
 
 void Common_Task(void const * argv);
@@ -21,6 +23,11 @@ SemaphoreHandle_t _mpu6000Mutex, _pxioMutex;
 
 static QueueSetHandle_t commQueueSet = NULL;
 
+QueueHandle_t getHandleByEnum(eTaskID id)
+{
+	return _tasklist[id].msgQueue;
+}
+
 void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, uint32_t sampleTime, uint32_t stacksize, uint32_t taskPrio)
 {
 	_tasklist[id].taskID 		= id;
@@ -29,15 +36,13 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 	_tasklist[id].taskPrio 		= taskPrio;
 	_tasklist[id].sampleTime 	= sampleTime;
 
-	_tasklist[id].msgQueue 		= xQueueCreate(MSG_QUEUE_SIZE, sizeof(char *));
+	_tasklist[id].msgQueue = xQueueCreate(MSG_QUEUE_SIZE, sizeof(char*));
 
-	xQueueAddToSet(_tasklist[id].msgQueue, commQueueSet );
+	xQueueAddToSet(_tasklist[id].msgQueue, commQueueSet);
 
 	memcpy(_tasklist[id].name, name, strlen(name));
 
-	debug_print_string("Register task \"");
-	debug_print_string(_tasklist[id].name);
-	debug_print_string("\"\n");
+	px4debug(eNONE, "Register task \"%s\"", _tasklist[id].name);
 
 	uint32_t ret = 0;
 
@@ -80,7 +85,7 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 
 	if (!ret)
 	{
-		debug_print_string("error creating task\n");
+		px4debug(eNONE, "error creating task");
 	}
 }
 
@@ -88,9 +93,7 @@ void Common_Task(void const * argv)
 {
 	px4_task * task = (px4_task*) argv;
 
-	char * pcStringToSend = (char *) pvPortMalloc(100);
-	snprintf(pcStringToSend, 100, "entry task \"%s\"\r\n", task->name);
-	xQueueSend(task->msgQueue, &pcStringToSend, portMAX_DELAY);
+	px4debug(task->taskID, "entry task \"%s\"", task->name);
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -109,7 +112,7 @@ void Common_Task(void const * argv)
 
 		if(mutex_exist & !mutex_taken)
 		{
-			debug_print_string("mutex not taken\n");
+			px4debug(task->taskID, "mutex not taken");
 		}
 
 		if ((mutex_exist & mutex_taken) || (!mutex_exist))
@@ -132,40 +135,25 @@ void px4_tasks_initialize()
 	memset(_tasklist, 0, sizeof(_tasklist));
 	_mpu6000Mutex 	= xSemaphoreCreateMutex();
 	_pxioMutex 		= xSemaphoreCreateMutex();
-
 	commQueueSet = xQueueCreateSet(eMaxCount);
-
-//	const size_t xMaxStringLength = 50;
-//	BaseType_t xStringNumber = 0;
-//	char *pcStringToSend;
-//
-//	pcStringToSend = ( char * ) prvGetBuffer( xMaxStringLength );
-//	snprintf( pcStringToSend, xMaxStringLength, "String number %d\r\n", xStringNumber );
-//
-//	xQueueSend( xPointerQueue, /* The QueueHandle_t handle of the queue. */
-//	&pcStringToSend, /* The address of the pointer that points to the buffer. */
-//	portMAX_DELAY );
-
-
-	debug_print_string("Tasks init ok\n");
+	px4debug(eNONE, "Tasks init ok");
 }
 
 void px4_tasks_run()
 {
-	debug_print_string("Start scheduler\n");
+	px4debug(eNONE, "Start scheduler");
 	vTaskStartScheduler();
 }
 
 // TODO Reaction on stack overflow?
 void vApplicationStackOverflowHook(TaskHandle_t *pxTask, signed char *pcTaskName)
 {
-	debug_print_string("RTOS stack overflow by ");
-	debug_print_string((const char *) pcTaskName);
-	debug_print_string("\r\n");
+	px4debug(eNONE, "RTOS stack overflow caused by %s", pcTaskName);
 }
 
+// TODO Reaction on failed malloc?
 void vApplicationMallocFailedHook(void)
 {
-	debug_print_string("RTOS malloc failed \n");
+	px4debug(eNONE, "RTOS malloc failed");
 }
 

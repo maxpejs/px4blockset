@@ -1,4 +1,5 @@
 #include "comm_itf.h"
+#include <stdarg.h>
 
 // Commands
 #define MPU6000_TOGLE_LOG_ACC  		"log acc"
@@ -16,7 +17,6 @@
 
 #define SD_CARD_LIST_FILE  			"list "
 #define SD_CARD_DEL_FILE  			"del "
-
 
 #define RX_BUFFER_SIZE			50
 #define PARSER_BUFFER_SIZE		20
@@ -71,9 +71,16 @@ static uint32_t _parse_idx = 0;
 
 UART_HandleTypeDef CommUart;
 
-void comm_itf_print_string(const char * str)
+void send_over_uart(const char * str)
 {
 	HAL_UART_Transmit(&CommUart, (uint8_t*)str, strlen(str), 10);
+}
+
+
+void comm_itf_print_string(const char * str)
+{
+	send_over_uart(str);
+	send_over_uart("\r\n");
 }
 
 void comm_itf_print_float(float val)
@@ -182,171 +189,173 @@ void comm_itf_task_function(void const * argv)
 	// check logging queues from other tasks
 	px4_task * task = (px4_task*) argv;
 
-	QueueHandle_t xQueueThatContainsData = NULL;
-	char *pcReceivedString = NULL;
+	QueueHandle_t nextQueueWithData = NULL;
+	char *queueRecvString = NULL;
 
 	do
 	{
-		xQueueThatContainsData = (QueueHandle_t) xQueueSelectFromSet(task->queueSet, portMAX_DELAY);
-		if (xQueueThatContainsData != NULL)
+		nextQueueWithData = (QueueHandle_t) xQueueSelectFromSet(task->queueSet, 0);
+		if (nextQueueWithData != NULL)
 		{
-			xQueueReceive(xQueueThatContainsData, &pcReceivedString, 0);
-			comm_itf_print_string(pcReceivedString);
+			BaseType_t ok = errQUEUE_EMPTY;
+			do
+			{
+				ok = xQueueReceive(nextQueueWithData, &queueRecvString, 0);
+
+				if(ok == pdPASS)
+				{
+					comm_itf_print_string(queueRecvString);
+					vPortFree(queueRecvString);
+				}
+				else
+				{
+					// comm_itf_print_string("queue is empty");
+				}
+			}
+			while(ok == pdPASS);
 		}
-	} while (xQueueThatContainsData != NULL);
+	} while (nextQueueWithData != NULL);
 }
 
 void process_cyclic_print(void)
 {
 	if (_print_map.mag)
-		{
-			hmc5883_data_st data;
-			px4_hmc5883_get(&data);
-			comm_itf_print_string("mag: ");
-			comm_itf_print_float(data.magX);
-			comm_itf_print_string(" ");
-			comm_itf_print_float(data.magY);
-			comm_itf_print_string(" ");
-			comm_itf_print_float(data.magZ);
-			comm_itf_print_string("\r\n");
-		}
+	{
+		hmc5883_data_st data;
+		px4_hmc5883_get(&data);
+		px4debug(eCOMMITF, "mag: %f %f %f", data.magX, data.magY, data.magZ);
+	}
 
-		if (_print_map.mpu_acc)
-		{
-			mpu6000_data_st data;
-			px4_mpu6000_get(&data);
-			comm_itf_print_string("mpu_acc ");
-			comm_itf_print_float(data.accel_x);
-			comm_itf_print_string(" ");
-			comm_itf_print_float(data.accel_y);
-			comm_itf_print_string(" ");
-			comm_itf_print_float(data.accel_z);
-			comm_itf_print_string("\r\n");
-		}
+	if (_print_map.mpu_acc)
+	{
+		mpu6000_data_st data;
+		px4_mpu6000_get(&data);
+		px4debug(eCOMMITF, "mpu_acc: %f %f %f", data.accel_x, data.accel_y, data.accel_z);
+	}
 
-		if (_print_map.mpu_gyro)
-		{
-			mpu6000_data_st data;
-			px4_mpu6000_get(&data);
-			comm_itf_print_string("mpu_gyro ");
-			comm_itf_print_float(data.gyro_x);
-			comm_itf_print_string(" ");
-			comm_itf_print_float(data.gyro_y);
-			comm_itf_print_string(" ");
-			comm_itf_print_float(data.gyro_z);
-			comm_itf_print_string("\r\n");
-		}
+	if (_print_map.mpu_gyro)
+	{
+		mpu6000_data_st data;
+		px4_mpu6000_get(&data);
+		comm_itf_print_string("mpu_gyro ");
+		comm_itf_print_float(data.gyro_x);
+		comm_itf_print_string(" ");
+		comm_itf_print_float(data.gyro_y);
+		comm_itf_print_string(" ");
+		comm_itf_print_float(data.gyro_z);
+		comm_itf_print_string("\r\n");
+	}
 
-		if (_print_map.cpu_load)
-		{
-			comm_itf_print_string("cpu load:");
-			comm_itf_print_int(cpu_load_get_curr_cpu_load());
-			comm_itf_print_string("% peak:");
-			comm_itf_print_int(cpu_load_get_max_cpu_load());
-			comm_itf_print_string("%\r\n");
-		}
+	if (_print_map.cpu_load)
+	{
+		comm_itf_print_string("cpu load:");
+		comm_itf_print_int(cpu_load_get_curr_cpu_load());
+		comm_itf_print_string("% peak:");
+		comm_itf_print_int(cpu_load_get_max_cpu_load());
+		comm_itf_print_string("%\r\n");
+	}
 
-		if (_print_map.gps_pos)
-		{
-			gps_rmc_packet_st pack;
-			px4_gps_get(&pack);
-			comm_itf_print_string("gps pos. lat: ");
-			comm_itf_print_float(pack.Latitude);
-			comm_itf_print_string(" lon: ");
-			comm_itf_print_float(pack.Longitude);
-			comm_itf_print_string(" valid:");
-			comm_itf_print_int(pack.Valid);
-			comm_itf_print_string("\r\n");
-		}
+	if (_print_map.gps_pos)
+	{
+		gps_rmc_packet_st pack;
+		px4_gps_get(&pack);
+		comm_itf_print_string("gps pos. lat: ");
+		comm_itf_print_float(pack.Latitude);
+		comm_itf_print_string(" lon: ");
+		comm_itf_print_float(pack.Longitude);
+		comm_itf_print_string(" valid:");
+		comm_itf_print_int(pack.Valid);
+		comm_itf_print_string("\r\n");
+	}
 
-		if (_print_map.gps_raw)
-		{
-			uint8_t tmp[GPS_SENTENCE_BUFF_SIZE];
-			px4_gps_get_raw(tmp);
-			comm_itf_print_string((const char *) tmp);
-			comm_itf_print_string("\r\n");
-		}
+	if (_print_map.gps_raw)
+	{
+		uint8_t tmp[GPS_SENTENCE_BUFF_SIZE];
+		px4_gps_get_raw(tmp);
+		comm_itf_print_string((const char *) tmp);
+		comm_itf_print_string("\r\n");
+	}
 
-		if (_print_map.baro)
-		{
-			ms5611_data_st data;
-			px4_ms5611_get(&data);
-			comm_itf_print_string("baro: ");
-			comm_itf_print_float(data.baroValue);
-			comm_itf_print_string("\r\n");
-		}
+	if (_print_map.baro)
+	{
+		ms5611_data_st data;
+		px4_ms5611_get(&data);
+		comm_itf_print_string("baro: ");
+		comm_itf_print_float(data.baroValue);
+		comm_itf_print_string("\r\n");
+	}
 
-		if (_print_map.rc_input)
-		{
-			rc_ppm_input_data_st data;
-			px4_rc_ppm_input_get(&data);
+	if (_print_map.rc_input)
+	{
+		rc_ppm_input_data_st data;
+		px4_rc_ppm_input_get(&data);
 
-			if (data.channel_cnt > 0)
+		if (data.channel_cnt > 0)
+		{
+			for (uint32_t i = 0; i < data.channel_cnt; i++)
 			{
-				for (uint32_t i = 0; i < data.channel_cnt; i++)
-				{
-					comm_itf_print_string(" ch");
-					comm_itf_print_int(i + 1);
-					comm_itf_print_string(":");
-					comm_itf_print_int(data.channels[i]);
-				}
-				comm_itf_print_string("\r\n");
+				comm_itf_print_string(" ch");
+				comm_itf_print_int(i + 1);
+				comm_itf_print_string(":");
+				comm_itf_print_int(data.channels[i]);
 			}
-			else
-			{
-				comm_itf_print_string("no rc input data\r\n");
-			}
-		}
-
-		if (_print_map.runtimes)
-		{
-			comm_itf_print_string("Runtimes (µs). ");
-
-			comm_itf_print_string("app: ");
-			comm_itf_print_int(app_runtime);
-
-			comm_itf_print_string(" rc: ");
-			comm_itf_print_int(px4_rc_ppm_input_getruntime());
-
-			comm_itf_print_string(", main: ");
-			comm_itf_print_int(px4_pwm_main_out_getruntime());
-
-			comm_itf_print_string(", aux: ");
-			comm_itf_print_int(px4_pwm_aux_out_getruntime());
-
-			comm_itf_print_string(", mpu6000: ");
-			comm_itf_print_int(px4_mpu6000_get_runtime());
-
-			comm_itf_print_string(", ms5611: ");
-			comm_itf_print_int(px4_ms5611_get_runtime());
-
-			comm_itf_print_string(", hmc5883: ");
-			comm_itf_print_int(px4_hmc5883_getruntime());
-
-			comm_itf_print_string(", cLED: ");
-			comm_itf_print_int(px4_color_power_led_getruntime());
-
-			uint32_t * gpsruntimes = px4_gps_getruntimes();
-			comm_itf_print_string(", gps parse: ");
-			comm_itf_print_int(gpsruntimes[0]);
-
-			comm_itf_print_string(", gps updt: ");
-			comm_itf_print_int(gpsruntimes[1]);
-
-			comm_itf_print_string(", gps crc: ");
-			comm_itf_print_int(gpsruntimes[2]);
-
-			comm_itf_print_string(", gps it: ");
-			comm_itf_print_int(gpsruntimes[3]);
-
-			comm_itf_print_string(", sig_log: ");
-			comm_itf_print_int(px4_signal_output_getruntime());
-
-			comm_itf_print_string(", sd_log: ");
-			comm_itf_print_int(px4_sd_card_logger_getruntime());
-
 			comm_itf_print_string("\r\n");
 		}
+		else
+		{
+			comm_itf_print_string("no rc input data\r\n");
+		}
+	}
+
+	if (_print_map.runtimes)
+	{
+		comm_itf_print_string("Runtimes (µs). ");
+
+		comm_itf_print_string("app: ");
+		comm_itf_print_int(app_runtime);
+
+		comm_itf_print_string(" rc: ");
+		comm_itf_print_int(px4_rc_ppm_input_getruntime());
+
+		comm_itf_print_string(", main: ");
+		comm_itf_print_int(px4_pwm_main_out_getruntime());
+
+		comm_itf_print_string(", aux: ");
+		comm_itf_print_int(px4_pwm_aux_out_getruntime());
+
+		comm_itf_print_string(", mpu6000: ");
+		comm_itf_print_int(px4_mpu6000_get_runtime());
+
+		comm_itf_print_string(", ms5611: ");
+		comm_itf_print_int(px4_ms5611_get_runtime());
+
+		comm_itf_print_string(", hmc5883: ");
+		comm_itf_print_int(px4_hmc5883_getruntime());
+
+		comm_itf_print_string(", cLED: ");
+		comm_itf_print_int(px4_color_power_led_getruntime());
+
+		uint32_t * gpsruntimes = px4_gps_getruntimes();
+		comm_itf_print_string(", gps parse: ");
+		comm_itf_print_int(gpsruntimes[0]);
+
+		comm_itf_print_string(", gps updt: ");
+		comm_itf_print_int(gpsruntimes[1]);
+
+		comm_itf_print_string(", gps crc: ");
+		comm_itf_print_int(gpsruntimes[2]);
+
+		comm_itf_print_string(", gps it: ");
+		comm_itf_print_int(gpsruntimes[3]);
+
+		comm_itf_print_string(", sig_log: ");
+		comm_itf_print_int(px4_signal_output_getruntime());
+
+		comm_itf_print_string(", sd_log: ");
+		comm_itf_print_int(px4_sd_card_logger_getruntime());
+
+		comm_itf_print_string("\r\n");
+	}
 }
 
 void process_received_cmd(void)
@@ -495,7 +504,51 @@ void debug_print_string(const char * str)
 	comm_itf_print_string(str);
 }
 
+void px4debug(eTaskID id, char * MESSAGE, ...)
+{
+	va_list arg;
+	va_start(arg, MESSAGE);
+	int messageSize = 100;
+	char * pcStringToSend = (char *) pvPortMalloc(messageSize);
+	int cnt = vsnprintf(pcStringToSend, messageSize, MESSAGE, arg);
+
+	if (cnt == messageSize)
+	{
+		px4debug(id, "WARNING! px4debug string size limit reached");
+	}
+
+	if(xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
+	{
+		QueueHandle_t msgQueue = getHandleByEnum(id);
+		if ( xQueueSend(msgQueue, &pcStringToSend, 0) != pdPASS)
+		{
+			// comm_itf_print_string("Queue is full");
+			// free memory, because adding to queue was failed
+			vPortFree(pcStringToSend);
+		}
+		else
+		{
+			// comm_itf_print_string("Queue add OK");
+		}
+	}
+	else
+	{
+		comm_itf_print_string(pcStringToSend);
+		// free memory, because printing directly to output
+		vPortFree(pcStringToSend);
+	}
+
+	va_end(arg);
+}
+
 #else
+
+void mycustomprint(QueueHandle_t msgQueue, char * MESSAGE, ...)
+{
+	UNUSED(msgQueue);
+	UNUSED(MESSAGE);
+}
+
 void debug_print_int(int val)
 {
 	UNUSED(val);
@@ -510,6 +563,7 @@ void debug_print_string(const char * str)
 {
 	UNUSED(str);
 }
+
 
 #endif
 

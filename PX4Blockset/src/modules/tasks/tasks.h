@@ -16,7 +16,8 @@ typedef void (* callback_t)(void const * argv);
 
 typedef enum
 {
-	eAPPL = 0,
+	eNONE = 0,
+	eAPPL,
 	eAUX_PWM,
 	ePWM_MAIN,
 	eCOLORLED,
@@ -74,5 +75,7 @@ void px4_tasks_run();
 *
 */
 void px4_tasks_register_task(eTaskID id, const char * name, callback_t func, uint32_t sampleTime, uint32_t stacksize, uint32_t taskPrio);
+
+QueueHandle_t getHandleByEnum(eTaskID id);
 
 #endif // TASKS_H

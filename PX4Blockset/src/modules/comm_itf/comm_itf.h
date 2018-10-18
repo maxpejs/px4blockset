@@ -68,10 +68,12 @@ void debug_print_int(int val);
 void debug_print_float(float val);
 void debug_print_string(const char * str);
 
+void px4debug(eTaskID id, char * MESSAGE, ...);
+
 /* print functions */
 void comm_itf_print_int(int val);
 void comm_itf_print_float(float val);
 void comm_itf_print_string(const char * str);
-	
+
 
 #endif // COMM_ITF_H
