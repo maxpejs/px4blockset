@@ -18,11 +18,11 @@ void px4_color_power_led_init()
 	if (color_power_led_enable() == SUCCESS)
 	{
 		_module_state = ENABLE;
-		debug_print_string("color power led init ok\r\n");
+		px4debug(eNONE, "color power led init ok\r\n");
 	}
 	else
 	{
-		debug_print_string("err at color power led init\r\n");
+		px4debug(eNONE, "err at color power led init\r\n");
 	}
 }
 
@@ -32,7 +32,7 @@ void px4_color_power_led_update(void const * argv)
 {
 	UNUSED(argv);
 
-	px4debug(eCOLORLED, "px4_color_power_led_update: %d", cnt++);
+	px4debug(eCOLORLED, "px4_color_power_led_update: %d\r\n", cnt++);
 
 	uint32_t start = tic();
 
@@ -64,7 +64,7 @@ void px4_color_power_led_update(void const * argv)
 	}
 	else
 	{
-		debug_print_string("err set rgb color\r\n");
+		px4debug(eCOLORLED, "err set rgb color\r\n");
 	}
 
 	if (_runtime > _max_runtime)

@@ -31,7 +31,7 @@ void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 	_gyroScale  = getGyroScale(_settings.gyro_range);
 
 	_module_state = ENABLE;
-	debug_print_string("mpu6000 init ok\r\n");
+	px4debug(eMPU6000, "mpu6000 init ok");
 }
 
 void px4_mpu6000_task_function()

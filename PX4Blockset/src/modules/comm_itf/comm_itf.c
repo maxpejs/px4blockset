@@ -11,7 +11,6 @@
 #define GPS_TOGLE_LOG_RAW_RMC		"log rmc"
 #define RC_INPUT_TOGLE_LOG_CH_VAL	"log rc"
 #define COMMON_LOG_OFF				"log off"
-#define COMMON_LOG_RUNTIMES			"log runtime"
 #define COMMON_LOG_SIM_SIGNALS  	"log sim"
 #define TASK_LOAD 					"taskload"
 
@@ -42,7 +41,6 @@ typedef struct
 	uint32_t gps_pos;
 	uint32_t gps_raw;
 	uint32_t rc_input;
-	uint32_t runtimes;
 } st_print_map_st;
 
 /*
@@ -76,11 +74,9 @@ void send_over_uart(const char * str)
 	HAL_UART_Transmit(&CommUart, (uint8_t*)str, strlen(str), 10);
 }
 
-
 void comm_itf_print_string(const char * str)
 {
 	send_over_uart(str);
-	send_over_uart("\r\n");
 }
 
 void comm_itf_print_float(float val)
@@ -99,8 +95,10 @@ void comm_itf_print_int(int val)
 
 void comm_itf_init()
 {
-	__HAL_RCC_GPIOD_CLK_ENABLE();
-	__HAL_RCC_USART2_CLK_ENABLE();
+	__HAL_RCC_GPIOD_CLK_ENABLE()
+	;
+	__HAL_RCC_USART2_CLK_ENABLE()
+	;
 
 	CommUart.Instance = USART2;
 	CommUart.Init.BaudRate = 57600;
@@ -190,29 +188,23 @@ void comm_itf_task_function(void const * argv)
 	px4_task * task = (px4_task*) argv;
 
 	QueueHandle_t nextQueueWithData = NULL;
-	char *queueRecvString = NULL;
 
 	do
 	{
 		nextQueueWithData = (QueueHandle_t) xQueueSelectFromSet(task->queueSet, 0);
 		if (nextQueueWithData != NULL)
 		{
-			BaseType_t ok = errQUEUE_EMPTY;
-			do
+			char *queueRecvString = NULL;
+			xQueueReceive(nextQueueWithData, &queueRecvString, portTICK_PERIOD_MS * 10);
+			if (queueRecvString != NULL)
 			{
-				ok = xQueueReceive(nextQueueWithData, &queueRecvString, 0);
-
-				if(ok == pdPASS)
-				{
-					comm_itf_print_string(queueRecvString);
-					vPortFree(queueRecvString);
-				}
-				else
-				{
-					// comm_itf_print_string("queue is empty");
-				}
+				send_over_uart(queueRecvString);
+				vPortFree(queueRecvString);
 			}
-			while(ok == pdPASS);
+			else
+			{
+				// comm_itf_print_string("queue is empty");
+			}
 		}
 	} while (nextQueueWithData != NULL);
 }
@@ -237,52 +229,33 @@ void process_cyclic_print(void)
 	{
 		mpu6000_data_st data;
 		px4_mpu6000_get(&data);
-		comm_itf_print_string("mpu_gyro ");
-		comm_itf_print_float(data.gyro_x);
-		comm_itf_print_string(" ");
-		comm_itf_print_float(data.gyro_y);
-		comm_itf_print_string(" ");
-		comm_itf_print_float(data.gyro_z);
-		comm_itf_print_string("\r\n");
+		px4debug(eCOMMITF, "mpu_gyro %f %f %f", data.gyro_x, data.gyro_y, data.gyro_z);
 	}
 
 	if (_print_map.cpu_load)
 	{
-		comm_itf_print_string("cpu load:");
-		comm_itf_print_int(cpu_load_get_curr_cpu_load());
-		comm_itf_print_string("% peak:");
-		comm_itf_print_int(cpu_load_get_max_cpu_load());
-		comm_itf_print_string("%\r\n");
+		px4debug(eCOMMITF, "cpu load:%d\% peak:%d\%", cpu_load_get_curr_cpu_load(), cpu_load_get_max_cpu_load());
 	}
 
 	if (_print_map.gps_pos)
 	{
 		gps_rmc_packet_st pack;
 		px4_gps_get(&pack);
-		comm_itf_print_string("gps pos. lat: ");
-		comm_itf_print_float(pack.Latitude);
-		comm_itf_print_string(" lon: ");
-		comm_itf_print_float(pack.Longitude);
-		comm_itf_print_string(" valid:");
-		comm_itf_print_int(pack.Valid);
-		comm_itf_print_string("\r\n");
+		px4debug(eCOMMITF, "gps lat:%f lon:%f valid:%d\r\n", pack.Latitude, pack.Longitude, pack.Valid);
 	}
 
 	if (_print_map.gps_raw)
 	{
 		uint8_t tmp[GPS_SENTENCE_BUFF_SIZE];
 		px4_gps_get_raw(tmp);
-		comm_itf_print_string((const char *) tmp);
-		comm_itf_print_string("\r\n");
+		px4debug(eCOMMITF, "%s\r\n", tmp);
 	}
 
 	if (_print_map.baro)
 	{
 		ms5611_data_st data;
 		px4_ms5611_get(&data);
-		comm_itf_print_string("baro: ");
-		comm_itf_print_float(data.baroValue);
-		comm_itf_print_string("\r\n");
+		px4debug(eCOMMITF, "baro: %f", data.baroValue);
 	}
 
 	if (_print_map.rc_input)
@@ -294,67 +267,14 @@ void process_cyclic_print(void)
 		{
 			for (uint32_t i = 0; i < data.channel_cnt; i++)
 			{
-				comm_itf_print_string(" ch");
-				comm_itf_print_int(i + 1);
-				comm_itf_print_string(":");
-				comm_itf_print_int(data.channels[i]);
+				px4debug(eCOMMITF, "ch%d:%d", (i + 1), data.channels[i]);
 			}
-			comm_itf_print_string("\r\n");
+			px4debug(eCOMMITF,"\r\n");
 		}
 		else
 		{
-			comm_itf_print_string("no rc input data\r\n");
+			px4debug(eCOMMITF, "no rc input data\r\n");
 		}
-	}
-
-	if (_print_map.runtimes)
-	{
-		comm_itf_print_string("Runtimes (µs). ");
-
-		comm_itf_print_string("app: ");
-		comm_itf_print_int(app_runtime);
-
-		comm_itf_print_string(" rc: ");
-		comm_itf_print_int(px4_rc_ppm_input_getruntime());
-
-		comm_itf_print_string(", main: ");
-		comm_itf_print_int(px4_pwm_main_out_getruntime());
-
-		comm_itf_print_string(", aux: ");
-		comm_itf_print_int(px4_pwm_aux_out_getruntime());
-
-		comm_itf_print_string(", mpu6000: ");
-		comm_itf_print_int(px4_mpu6000_get_runtime());
-
-		comm_itf_print_string(", ms5611: ");
-		comm_itf_print_int(px4_ms5611_get_runtime());
-
-		comm_itf_print_string(", hmc5883: ");
-		comm_itf_print_int(px4_hmc5883_getruntime());
-
-		comm_itf_print_string(", cLED: ");
-		comm_itf_print_int(px4_color_power_led_getruntime());
-
-		uint32_t * gpsruntimes = px4_gps_getruntimes();
-		comm_itf_print_string(", gps parse: ");
-		comm_itf_print_int(gpsruntimes[0]);
-
-		comm_itf_print_string(", gps updt: ");
-		comm_itf_print_int(gpsruntimes[1]);
-
-		comm_itf_print_string(", gps crc: ");
-		comm_itf_print_int(gpsruntimes[2]);
-
-		comm_itf_print_string(", gps it: ");
-		comm_itf_print_int(gpsruntimes[3]);
-
-		comm_itf_print_string(", sig_log: ");
-		comm_itf_print_int(px4_signal_output_getruntime());
-
-		comm_itf_print_string(", sd_log: ");
-		comm_itf_print_int(px4_sd_card_logger_getruntime());
-
-		comm_itf_print_string("\r\n");
 	}
 }
 
@@ -395,10 +315,6 @@ void process_received_cmd(void)
 	{
 		_print_map.rc_input = !_print_map.rc_input;
 	}
-	else if (strncmp(buff, COMMON_LOG_RUNTIMES, strlen(COMMON_LOG_RUNTIMES)) == 0)
-	{
-		_print_map.runtimes = !_print_map.runtimes;
-	}
 	else if (strncmp(buff, COMMON_LOG_SIM_SIGNALS, strlen(COMMON_LOG_SIM_SIGNALS)) == 0)
 	{
 		px4_signal_output_set_log(ENABLE);
@@ -425,43 +341,39 @@ void process_received_cmd(void)
 	}
 	else
 	{
-		comm_itf_print_string("UNKNOWN COMMAND! Type <help> for command info \r\n");
+		px4debug(eCOMMITF, "UNKNOWN COMMAND! Type <help> for command info");
 	}
 }
 
 void print_help()
 {
-	comm_itf_print_string("===============================\r\n");
-	comm_itf_print_string("= Follow commands are allowed =\r\n");
-	comm_itf_print_string("===============================\r\n");
-
-	comm_itf_print_string("\r\nCOMMANDS FOR SENSOR DATA\r\n");
-	comm_itf_print_string("------------------------\r\n");
-	comm_itf_print_string("'log acc' 	- log acceleration data \r\n");
-	comm_itf_print_string("'log gyro' 	- log gyroscope sensor data \r\n");
-	comm_itf_print_string("'log baro' 	- log barometer data \r\n");
-	comm_itf_print_string("'log mag' 	- log compass data \r\n");
-	comm_itf_print_string("'log pos' 	- log gps position \r\n");
-	comm_itf_print_string("'log rmc' 	- log raw GPS-RMC-Sentence \r\n");
-	comm_itf_print_string("'log rc' 	- log received remote control values \r\n");
-	comm_itf_print_string("'log sim' 	- log values from signal logger \r\n");
-
-	comm_itf_print_string("\r\nCOMMANDS FOR SD CARD FILE MANAGEMENT\r\n");
-	comm_itf_print_string("------------------------------------\r\n");
-	comm_itf_print_string("'list all' 		 - list all existing logfile names \r\n");
-	comm_itf_print_string("'list <filename>' - list the logfile with name <filename> on console\r\n");
-	comm_itf_print_string("'del all' 		 - delete all log files \r\n");
-	comm_itf_print_string("'del <filename>'  - delete the logfile with name <filename>\r\n");
-
-	comm_itf_print_string("\r\nOTHER COMANDS\r\n");
-	comm_itf_print_string("-------------\r\n");
-	comm_itf_print_string("'log cpu' 		- log cpu usage \r\n");
-	comm_itf_print_string("'log runtime'	- log calculated runtimes of all modules\r\n");
-	comm_itf_print_string("'log off' 		- disable all logging \r\n");
-	comm_itf_print_string("'taskload' 		- log task cpu usage since system start\r\n");
-	comm_itf_print_string("'top' 			- log cyclic task cpu usage\r\n");
-
-	comm_itf_print_string("===============================\r\n");
+	px4debug(eCOMMITF, "===============================");
+	px4debug(eCOMMITF, "= Follow commands are allowed =");
+	px4debug(eCOMMITF, "===============================");
+	px4debug(eCOMMITF, "\r\nCOMMANDS FOR SENSOR DATA");
+	px4debug(eCOMMITF, "------------------------");
+	px4debug(eCOMMITF, "'log acc' 	- log acceleration data ");
+	px4debug(eCOMMITF, "'log gyro' 	- log gyroscope sensor data ");
+	px4debug(eCOMMITF, "'log baro' 	- log barometer data ");
+	px4debug(eCOMMITF, "'log mag' 	- log compass data ");
+	px4debug(eCOMMITF, "'log pos' 	- log gps position ");
+	px4debug(eCOMMITF, "'log rmc' 	- log raw GPS-RMC-Sentence ");
+	px4debug(eCOMMITF, "'log rc' 	- log received remote control values ");
+	px4debug(eCOMMITF, "'log sim' 	- log values from signal logger ");
+	px4debug(eCOMMITF, "\r\nCOMMANDS FOR SD CARD FILE MANAGEMENT");
+	px4debug(eCOMMITF, "------------------------------------");
+	px4debug(eCOMMITF, "'list all' 		 - list all existing logfile names ");
+	px4debug(eCOMMITF, "'list <filename>' - list the logfile with name <filename> on console");
+	px4debug(eCOMMITF, "'del all' 		 - delete all log files ");
+	px4debug(eCOMMITF, "'del <filename>'  - delete the logfile with name <filename>");
+	px4debug(eCOMMITF, "\r\nOTHER COMANDS");
+	px4debug(eCOMMITF, "-------------");
+	px4debug(eCOMMITF, "'log cpu' 		- log cpu usage ");
+	px4debug(eCOMMITF, "'log runtime'	- log calculated runtimes of all modules");
+	px4debug(eCOMMITF, "'log off' 		- disable all logging ");
+	px4debug(eCOMMITF, "'taskload' 		- log task cpu usage since system start");
+	px4debug(eCOMMITF, "'top' 			- log cyclic task cpu usage");
+	px4debug(eCOMMITF, "===============================");
 }
 
 void print_task_load()
@@ -470,21 +382,14 @@ void print_task_load()
 	uint32_t total = 1;
 	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, 10, &total);
 
-	debug_print_string("TASK INFORMATION\n-------------------------");
-	debug_print_string("\nTask name \t Stack water mark \t %CPU \n");
+	px4debug(eCOMMITF, "TASK INFORMATION");
+	px4debug(eCOMMITF, "-------------------------");
+	px4debug(eCOMMITF, "\nTask name \t Stack water mark \t %CPU \n");
 	for (unsigned int i = 0; i < size; i++)
 	{
-		debug_print_string(val[i].pcTaskName);
-
-		debug_print_string("\t");
-		debug_print_int(val[i].usStackHighWaterMark);
-
-		debug_print_string("\t");
-		debug_print_int((val[i].ulRunTimeCounter * 100)/total);
-
-		debug_print_string("\n");
+		px4debug(eCOMMITF, "%s\t%d\t%d", val[i].pcTaskName, val[i].usStackHighWaterMark, (val[i].ulRunTimeCounter * 100) / total);
 	}
-	debug_print_string("\n-------------------------\n");
+	px4debug(eCOMMITF, "-------------------------");
 }
 
 /***********************************************************/
@@ -517,19 +422,24 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 		px4debug(id, "WARNING! px4debug string size limit reached");
 	}
 
-	if(xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
+	if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
 	{
 		QueueHandle_t msgQueue = getHandleByEnum(id);
-		if ( xQueueSend(msgQueue, &pcStringToSend, 0) != pdPASS)
+
+		if (msgQueue != NULL)
 		{
-			// comm_itf_print_string("Queue is full");
-			// free memory, because adding to queue was failed
-			vPortFree(pcStringToSend);
+			if ( xQueueSend(msgQueue, &pcStringToSend, 0) != pdTRUE)
+			{
+				comm_itf_print_string("Queue is full");
+				// free memory, because adding to queue was failed
+				vPortFree(pcStringToSend);
+			}
+			else
+			{
+
+			}
 		}
-		else
-		{
-			// comm_itf_print_string("Queue add OK");
-		}
+
 	}
 	else
 	{
@@ -548,22 +458,6 @@ void mycustomprint(QueueHandle_t msgQueue, char * MESSAGE, ...)
 	UNUSED(msgQueue);
 	UNUSED(MESSAGE);
 }
-
-void debug_print_int(int val)
-{
-	UNUSED(val);
-}
-
-void debug_print_float(float val)
-{
-	UNUSED(val);
-}
-
-void debug_print_string(const char * str)
-{
-	UNUSED(str);
-}
-
 
 #endif
 

@@ -35,14 +35,12 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 	_tasklist[id].stackSize 	= (stacksize == 0) ? configMINIMAL_STACK_SIZE : stacksize;
 	_tasklist[id].taskPrio 		= taskPrio;
 	_tasklist[id].sampleTime 	= sampleTime;
-
-	_tasklist[id].msgQueue = xQueueCreate(MSG_QUEUE_SIZE, sizeof(char*));
+	_tasklist[id].msgQueue 		= xQueueCreate(MSG_QUEUE_SIZE, sizeof(char*));
 
 	xQueueAddToSet(_tasklist[id].msgQueue, commQueueSet);
-
 	memcpy(_tasklist[id].name, name, strlen(name));
 
-	px4debug(eNONE, "Register task \"%s\"", _tasklist[id].name);
+	px4debug(eNONE, "Register task \"%s\"\r\n", _tasklist[id].name);
 
 	uint32_t ret = 0;
 
@@ -85,7 +83,7 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 
 	if (!ret)
 	{
-		px4debug(eNONE, "error creating task");
+		px4debug(eNONE, "error creating task\r\n");
 	}
 }
 
@@ -93,7 +91,7 @@ void Common_Task(void const * argv)
 {
 	px4_task * task = (px4_task*) argv;
 
-	px4debug(task->taskID, "entry task \"%s\"", task->name);
+	px4debug(task->taskID, "entry task \"%s\"\r\n", task->name);
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -112,7 +110,7 @@ void Common_Task(void const * argv)
 
 		if(mutex_exist & !mutex_taken)
 		{
-			px4debug(task->taskID, "mutex not taken");
+			px4debug(task->taskID, "mutex not taken\r\n");
 		}
 
 		if ((mutex_exist & mutex_taken) || (!mutex_exist))
@@ -135,25 +133,34 @@ void px4_tasks_initialize()
 	memset(_tasklist, 0, sizeof(_tasklist));
 	_mpu6000Mutex 	= xSemaphoreCreateMutex();
 	_pxioMutex 		= xSemaphoreCreateMutex();
-	commQueueSet = xQueueCreateSet(eMaxCount);
-	px4debug(eNONE, "Tasks init ok");
+	commQueueSet = xQueueCreateSet(eMaxCount * MSG_QUEUE_SIZE);
+
+	if(commQueueSet == NULL || _mpu6000Mutex == NULL || _pxioMutex == NULL)
+	{
+		px4debug(eNONE, "Tasks init error\r\n");
+	}
+	else
+	{
+		px4debug(eNONE, "Tasks init ok\r\n");
+	}
+
 }
 
 void px4_tasks_run()
 {
-	px4debug(eNONE, "Start scheduler");
+	px4debug(eNONE, "Start scheduler\r\n");
 	vTaskStartScheduler();
 }
 
 // TODO Reaction on stack overflow?
 void vApplicationStackOverflowHook(TaskHandle_t *pxTask, signed char *pcTaskName)
 {
-	px4debug(eNONE, "RTOS stack overflow caused by %s", pcTaskName);
+	px4debug(eNONE, "RTOS stack overflow caused by %s\r\n", pcTaskName);
 }
 
 // TODO Reaction on failed malloc?
 void vApplicationMallocFailedHook(void)
 {
-	px4debug(eNONE, "RTOS malloc failed");
+	px4debug(eNONE, "RTOS malloc failed\r\n");
 }
 

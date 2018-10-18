@@ -16,7 +16,7 @@ typedef void (* callback_t)(void const * argv);
 
 typedef enum
 {
-	eNONE = 0,
+	eNONE = 0,	// is used for printing to console only still no schedule is running
 	eAPPL,
 	eAUX_PWM,
 	ePWM_MAIN,
