@@ -51,7 +51,7 @@ void px4_signal_output_set(float * values)
 	
 	_sample_cnt++;
 	
-	if (_ring_buffer_free_space(&rbuff) > 0)
+	if (ring_buffer_free_space(&rbuff) > 0)
 	{
 		memcpy(&(rbuff.buff[rbuff.write].val), values, sizeof(float) * _sig_cnt);
 		rbuff.buff[rbuff.write].timestamp = ts;
@@ -62,7 +62,7 @@ void px4_signal_output_set(float * values)
 	}
 	else
 	{
-		debug_print_string("signal logger. not enough space in buffer\r\n");
+		px4debug(eSIGLOGGER, "signal logger. not enough space in buffer\r\n");
 	}
 }
 
@@ -70,50 +70,35 @@ void px4_signal_output_task(void)
 {
 	uint64_t timestampt = tic();
 
-	if (_module_state == DISABLE)
+	if (_module_state == DISABLE || ring_buffer_empty(&rbuff))
 	{
 		return;
 	}
 
-	if (_ring_buffer_empty(&rbuff))
-	{
-		return; // no values to plot
-	}
-
-	while(!_ring_buffer_empty(&rbuff))
+	while (!ring_buffer_empty(&rbuff))
 	{
 		uint32_t tm = rbuff.buff[rbuff.read].timestamp;
-	
-		char arr[30];
-		snprintf(arr, sizeof(arr), "t(s):%d.%03d", (int) (tm / 1000000), (int) ((tm / 1000) % 1000));
-		comm_itf_print_string(arr);
+
+		px4debug(eSIGLOGGER, "t(s):%d.%03d", (tm / 1000000), ((tm / 1000) % 1000));
 
 		for (uint32_t i = 0; i < _sig_cnt; i++)
 		{
-			// sprintf(arr, " [%d]:%f\n", (int)i+1, arr_copy[i]);
-			// comm_itf_print_string(arr);
-
-			// TODO: use sprintf instead
-			comm_itf_print_string(" [");
-			comm_itf_print_int(i + 1);
-			comm_itf_print_string("]:");
-			comm_itf_print_float(rbuff.buff[rbuff.read].val[i]);
+			px4debug(eSIGLOGGER, " [%d]:%f", (i + 1), rbuff.buff[rbuff.read].val[i]);
 		}
-		
-		comm_itf_print_string("\r\n");
+
+		px4debug(eSIGLOGGER, "\r\n");
 		rbuff.read++;
 		rbuff.read %= RING_BUFF_SIZE;
 	}
 
-	_runtime = (uint32_t)toc(timestampt);
+	_runtime = (uint32_t) toc(timestampt);
 }
 
-// TODO: strange section
 void px4_signal_output_set_log(uint8_t state)
 {
 	if(state == ENABLE)
 	{
-		_log_enabled = !_log_enabled;
+		_log_enabled = !_log_enabled; // ENABLE is use for toggle
 	}
 	else
 	{

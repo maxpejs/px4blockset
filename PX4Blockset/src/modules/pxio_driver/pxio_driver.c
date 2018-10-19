@@ -34,7 +34,7 @@ void pxio_driver_init(void)
 
 		if (HAL_UART_Init(&PXIO_UART) != HAL_OK)
 		{
-			debug_print_string("pxio drv HAL_UART_Init error! \r\n");
+			comm_itf_print_string("pxio drv HAL_UART_Init error! \r\n");
 			error_handler(0);
 		}
 
@@ -62,7 +62,7 @@ void pxio_driver_init(void)
 		hdma_tx.Init.PeriphBurst 			= DMA_PBURST_INC4;
 		if (HAL_DMA_Init(&hdma_tx) != HAL_OK)
 		{
-			debug_print_string("pxio drv HAL_DMA_Init tx error! \r\n");
+			comm_itf_print_string("pxio drv HAL_DMA_Init tx error! \r\n");
 			error_handler(0);
 		}
 
@@ -84,7 +84,7 @@ void pxio_driver_init(void)
 
 		if (HAL_DMA_Init(&hdma_rx) != HAL_OK)
 		{
-			debug_print_string("pxio drv HAL_DMA_Init rx error! \r\n");
+			comm_itf_print_string("pxio drv HAL_DMA_Init rx error! \r\n");
 			error_handler(0);
 		}
 		__HAL_LINKDMA(&PXIO_UART, hdmarx, hdma_rx);
@@ -103,7 +103,7 @@ void pxio_driver_init(void)
 		HAL_NVIC_EnableIRQ(USART6_IRQn);
 		
 		module_state = ENABLE;
-		debug_print_string("pxio_driver init ok\r\n");
+		comm_itf_print_string("pxio_driver init ok\r\n");
 
 		uint16_t reg_val = 0;
 		int16_t ret, tries = 5;
@@ -124,11 +124,11 @@ void pxio_driver_init(void)
 
 		if (tries == 0)
 		{
-			debug_print_string("no communication to pxio\r\n");
+			comm_itf_print_string("no communication to pxio\r\n");
 		}
 		else
 		{
-			debug_print_string("communication with pxio is established\r\n");
+			comm_itf_print_string("communication with pxio is established\r\n");
 		}
 	}
 }
@@ -142,7 +142,7 @@ int32_t pxio_driver_reg_mod(uint8_t page, uint8_t offset, uint16_t clearbits, ui
 
 	if (ret != SUCCESS)
 	{
-		debug_print_string("reg mod get err\r\n");
+		comm_itf_print_string("reg mod get err\r\n");
 		return ret;
 	}
 	
@@ -153,7 +153,7 @@ int32_t pxio_driver_reg_mod(uint8_t page, uint8_t offset, uint16_t clearbits, ui
 
 	if (ret != SUCCESS)
 	{
-		debug_print_string("reg mod set err\r\n");
+		comm_itf_print_string("reg mod set err\r\n");
 		return ret;
 	}
 	return ret; 
@@ -170,7 +170,7 @@ int32_t pxio_driver_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsi
 
 	if (ret != (int) num_values)
 	{
-		debug_print_string("reg get err\r\n");
+		comm_itf_print_string("reg get err\r\n");
 		return ERROR;
 	}
 	return SUCCESS;
@@ -187,7 +187,7 @@ int32_t pxio_driver_reg_set(uint8_t page, uint8_t offset, uint16_t * values, uns
 
 	if (ret != (int)num_values) 
 	{
-		debug_print_string("reg set err\r\n");
+		comm_itf_print_string("reg set err\r\n");
 		return ERROR;
 	}
 	return SUCCESS;
@@ -225,7 +225,7 @@ int32_t write(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 		}
 		else
 		{
-			debug_print_string("wrt pck err\r\n");
+			comm_itf_print_string("wrt pck err\r\n");
 			result = ERROR;
 		}
 	}
@@ -257,12 +257,12 @@ int32_t read(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 	{
 		if (PKT_CODE(dmaRxBuffer) == PKT_CODE_ERROR)
 		{
-			debug_print_string("pck code err\r\n");
+			comm_itf_print_string("pck code err\r\n");
 			result = ERROR;
 		}
 		else if (PKT_COUNT(dmaRxBuffer) != count) /* compare register counts */
 		{
-			debug_print_string("recv cnt err\r\n");
+			comm_itf_print_string("recv cnt err\r\n");
 			result = ERROR;
 		}
 		else // read was successful
@@ -289,14 +289,14 @@ int32_t com_complete()
 	// start rx dma
 	if (HAL_UART_Receive_DMA(&PXIO_UART, (uint8_t*) &dmaRxBuffer, sizeof(dmaRxBuffer)) != HAL_OK)
 	{
-		debug_print_string("setup rx dma err\r\n");
+		comm_itf_print_string("setup rx dma err\r\n");
 		error_handler(0);
 	}
 
 	// start tx dma
 	if (HAL_UART_Transmit_DMA(&PXIO_UART, (uint8_t*) &dmaBuffer, PKT_SIZE(dmaBuffer)) != HAL_OK)
 	{
-		debug_print_string("setup tx dma err\r\n");
+		comm_itf_print_string("setup tx dma err\r\n");
 		error_handler(0);
 	}
 
@@ -306,7 +306,7 @@ int32_t com_complete()
 	//
 	//	if (timer >= DMA_TXRX_TIMEOUT)
 	//	{
-	//		debug_print_string("dma timeout on start \r\n");
+	//		comm_itf_print_string("dma timeout on start \r\n");
 	//	}
 	//
 	//	// wait until rx transaction is over
@@ -341,7 +341,7 @@ int32_t com_complete()
 	dmaRxBuffer.crc = 0;
 	if ((crc != crc_packet(&dmaRxBuffer)) | (PKT_CODE(dmaRxBuffer) == PKT_CODE_CORRUPT))
 	{
-		debug_print_string("dma crc err\r\n");
+		comm_itf_print_string("dma crc err\r\n");
 		result = ERROR;
 	}
 

@@ -1,7 +1,8 @@
 #include "mpu6000.h"
 
 static uint32_t 			_module_state = DISABLE;
-static mpu6000_data_st 		_mpu6000_data_storage;
+static mpu6000_data_st 		_mpu6000_data_storage[2];
+static uint32_t storageIdx;
 static mpu6000_settings_st 	_settings;
 
 static float _accelScale 	= 1.f;
@@ -30,6 +31,8 @@ void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 	_accelScale = getAccelScale(_settings.accel_range);
 	_gyroScale  = getGyroScale(_settings.gyro_range);
 
+	storageIdx = 0;
+
 	_module_state = ENABLE;
 	px4debug(eMPU6000, "mpu6000 init ok");
 }
@@ -55,13 +58,17 @@ void px4_mpu6000_task_function()
 	if (px4_spi_drv_transmit(PX4_SPI1, rxBuff, rxBuff, MPU_MSG_BUFFERSIZE) == SUCCESS)
 	{
 		// register values are stored beginning from rxBuff[1]
-		_mpu6000_data_storage.accel_x = (calc_accel(rxBuff[1], rxBuff[2]) * _settings.scale_accel_x) + _settings.offset_accel_x;
-		_mpu6000_data_storage.accel_y = (calc_accel(rxBuff[3], rxBuff[4]) * _settings.scale_accel_y) + _settings.offset_accel_y;
-		_mpu6000_data_storage.accel_z = (calc_accel(rxBuff[5], rxBuff[6]) * _settings.scale_accel_z) + _settings.offset_accel_z;
-		_mpu6000_data_storage.temp 	 = calc_temp(rxBuff[7],  rxBuff[8]);
-		_mpu6000_data_storage.gyro_x = calc_gyro(rxBuff[9],  rxBuff[10]);
-		_mpu6000_data_storage.gyro_y = calc_gyro(rxBuff[11], rxBuff[12]);
-		_mpu6000_data_storage.gyro_z = calc_gyro(rxBuff[13], rxBuff[14]);
+		_mpu6000_data_storage[storageIdx].accel_x = (calc_accel(rxBuff[1], rxBuff[2]) * _settings.scale_accel_x) + _settings.offset_accel_x;
+		_mpu6000_data_storage[storageIdx].accel_y = (calc_accel(rxBuff[3], rxBuff[4]) * _settings.scale_accel_y) + _settings.offset_accel_y;
+		_mpu6000_data_storage[storageIdx].accel_z = (calc_accel(rxBuff[5], rxBuff[6]) * _settings.scale_accel_z) + _settings.offset_accel_z;
+		_mpu6000_data_storage[storageIdx].temp 	 = calc_temp(rxBuff[7],  rxBuff[8]);
+		_mpu6000_data_storage[storageIdx].gyro_x = calc_gyro(rxBuff[9],  rxBuff[10]);
+		_mpu6000_data_storage[storageIdx].gyro_y = calc_gyro(rxBuff[11], rxBuff[12]);
+		_mpu6000_data_storage[storageIdx].gyro_z = calc_gyro(rxBuff[13], rxBuff[14]);
+
+		// toggle storage index
+		storageIdx = (storageIdx + 1) % 2;
+
 	}
 	MPU6000_DISA;
 
@@ -110,7 +117,9 @@ static float calc_temp(uint8_t hb, uint8_t lb)
 
 void px4_mpu6000_get(mpu6000_data_st * data)
 {
-	memcpy(data, &_mpu6000_data_storage, sizeof(mpu6000_data_st));
+	// get storage read index
+	uint32_t i = (storageIdx + 1) % 2;
+	memcpy(data, &_mpu6000_data_storage[i], sizeof(mpu6000_data_st));
 }
 
 static void mpu6000_reg_set(uint8_t reg, uint8_t val)
@@ -149,7 +158,7 @@ static void mpu6000_init_sensor()
 		uint8_t c = mpu6000_reg_get(WHOAMI);
 
 		if (c !=WHOAMI_MPU6000_ID)
-			debug_print_string("WHOAMI\r\n");
+			px4debug(eMPU6000,"WHOAMI\r\n");
 
 		HAL_Delay(100);
 
@@ -170,25 +179,25 @@ static void mpu6000_init_sensor()
 		r7 = mpu6000_reg_get(MPU6000_ACCEL_CONFIG);
 
 		if (r1 != MPU_CLK_SEL_PLLGYROZ)
-			debug_print_string("PWR_MGMT_1\r\n");
+			px4debug(eMPU6000,"PWR_MGMT_1\r\n");
 
 		if (r2 != BIT_I2C_IF_DIS)
-			debug_print_string("USER_CTRL\r\n");
+			px4debug(eMPU6000,"USER_CTRL\r\n");
 
 		if (r3 != 0x00)
-			debug_print_string("PWR_MGMT_2\r\n");
+			px4debug(eMPU6000,"PWR_MGMT_2\r\n");
 
 		if (r4 != _settings.smplrt_cfg)
-			debug_print_string("SMPLRT_DIV\r\n");
+			px4debug(eMPU6000,"SMPLRT_DIV\r\n");
 
 		if (r5 != _settings.dlpf_cfg)
-			debug_print_string("CFG\r\n");
+			px4debug(eMPU6000,"CFG\r\n");
 
 		if (r6 != _settings.gyro_range)
-			debug_print_string("GYRO_CONFIG\r\n");
+			px4debug(eMPU6000,"GYRO_CONFIG\r\n");
 
 		if (r7 != _settings.accel_range)
-			debug_print_string("ACCEL_CONFIG\r\n");
+			px4debug(eMPU6000,"ACCEL_CONFIG\r\n");
 
 		if ((c == WHOAMI_MPU6000_ID) && (r1 == MPU_CLK_SEL_PLLGYROZ) && (r2 == BIT_I2C_IF_DIS) && (r3 == 0x00)
 				&& (r4 == _settings.smplrt_cfg) && (r5 == _settings.dlpf_cfg) && (r6 == _settings.gyro_range)
@@ -202,7 +211,7 @@ static void mpu6000_init_sensor()
 
 	if (tries == 0)
 	{
-		debug_print_string("mpu6000 sensor init error!\r\n");
+		px4debug(eMPU6000,"mpu6000 sensor init error!\r\n");
 		error_handler(0);
 	}
 }

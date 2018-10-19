@@ -1,18 +1,6 @@
 #include "comm_itf.h"
 #include "tasks.h"
 #include "defines.h"
-#include "mpu6000.h"
-#include "ms5611.h"
-#include "hmc5883.h"
-#include "gps.h"
-#include "fmu_amber_led.h"
-#include "rc_ppm_input.h"
-#include "pwm_aux_out.h"
-#include "pwm_main_out.h"
-#include "color_power_led.h"
-#include "sd_card_logger.h"
-#include "cpu_load.h"
-
 
 #define MSG_QUEUE_SIZE	20
 
@@ -32,7 +20,7 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 {
 	_tasklist[id].taskID 		= id;
 	_tasklist[id].taskFunction 	= func;
-	_tasklist[id].stackSize 	= (stacksize == 0) ? configMINIMAL_STACK_SIZE : stacksize;
+	_tasklist[id].stackSize 	= (stacksize < configMINIMAL_STACK_SIZE) ? configMINIMAL_STACK_SIZE : stacksize;
 	_tasklist[id].taskPrio 		= taskPrio;
 	_tasklist[id].sampleTime 	= sampleTime;
 	_tasklist[id].msgQueue 		= xQueueCreate(MSG_QUEUE_SIZE, sizeof(char*));

@@ -51,11 +51,11 @@ void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 	if (hmc5883_enable() == SUCCESS)
 	{
 		_module_state = ENABLE;
-		debug_print_string("hmc5883 init ok\r\n");
+		px4debug(eHMC5883, "hmc5883 init ok\r\n");
 	}
 	else
 	{
-		debug_print_string("err at hmc5883 init! \r\n");
+		px4debug(eHMC5883,"err at hmc5883 init!\r\n");
 	}
 }
 
@@ -73,7 +73,7 @@ void px4_hmc5883_update()
 
 	if (result == ERROR)
 	{
-		debug_print_string("err tx cmd at compass module!\r\n");
+		px4debug(eHMC5883,"err tx cmd at compass module!\r\n");
 		return;
 	}
 
@@ -82,7 +82,7 @@ void px4_hmc5883_update()
 
 	if (result == ERROR)
 	{
-		debug_print_string("err get compass data!\r\n");
+		px4debug(eHMC5883, "err get compass data!\r\n");
 		return;
 	}
 
@@ -137,7 +137,7 @@ static uint32_t hmc5883_enable(void)
 	result &= px4_i2c_drv_transmit(HMC5883_I2C_ITF, HMC5883_I2C_DEVICE_ADDRESS, msg, sizeof(msg));
 
 	if (result == ERROR)
-		debug_print_string("err set regs!\r\n");
+		px4debug(eHMC5883, "err set regs!\r\n");
 
 	return result;
 }

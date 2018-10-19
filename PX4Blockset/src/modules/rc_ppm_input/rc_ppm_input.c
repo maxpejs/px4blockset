@@ -14,7 +14,7 @@ void px4_rc_ppm_input_init(void)
 	memset(&rc_in_data_storage, 0, sizeof(rc_in_data_storage));
 	pxio_driver_init();
 	_module_init = ENABLE;
-	debug_print_string("rc_ppm_input init ok\r\n");
+	px4debug(ePPM_INPUT, "rc_ppm_input init ok\r\n");
 }
 
 void px4_rc_ppm_input_task_function(void const * argv)
@@ -35,7 +35,7 @@ void px4_rc_ppm_input_task_function(void const * argv)
 	ret = pxio_driver_reg_get( PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], reg_offset + CHANNEL_PART);
 	if (ret != SUCCESS)
 	{
-		debug_print_string("req ch cnt + ch part err!\r\n");
+		px4debug(ePPM_INPUT, "req ch cnt + ch part err!\r\n");
 		return;
 	}
 
@@ -48,7 +48,7 @@ void px4_rc_ppm_input_task_function(void const * argv)
 									&regs[reg_offset + CHANNEL_PART], rc_in_data_storage.channel_cnt - CHANNEL_PART);
 		if (ret != SUCCESS)
 		{
-			debug_print_string("req next chs err!\r\n");
+			px4debug(ePPM_INPUT, "req next chs err!\r\n");
 			return;
 		}
 	}

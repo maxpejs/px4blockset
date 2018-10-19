@@ -13,6 +13,7 @@
 #define COMMON_LOG_OFF				"log off"
 #define COMMON_LOG_SIM_SIGNALS  	"log sim"
 #define TASK_LOAD 					"taskload"
+#define TOP 	 					"top"
 
 #define SD_CARD_LIST_FILE  			"list "
 #define SD_CARD_DEL_FILE  			"del "
@@ -22,13 +23,12 @@
 
 typedef enum
 {
-  COMPLETED = 0U,
-  NOT_COMPLETED = !COMPLETED
+	COMPLETED = 0U, NOT_COMPLETED = !COMPLETED
 } completed_status;
 
 /*
-* flags for enabling or disabling print infos
-*/
+ * flags for enabling or disabling print infos
+ */
 typedef struct
 {
 	uint32_t mpu_acc;
@@ -41,6 +41,7 @@ typedef struct
 	uint32_t gps_pos;
 	uint32_t gps_raw;
 	uint32_t rc_input;
+	uint32_t top;
 } st_print_map_st;
 
 /*
@@ -51,13 +52,12 @@ static void check_rx_buff(void);
 static void print_help();
 void print_task_load();
 
-void process_cyclic_print(void );
-
+void process_cyclic_print(void);
 
 /*
  * global variables
  */
-static uint32_t _moule_state  = DISABLE;
+static uint32_t _moule_state = DISABLE;
 static uint32_t _cmd_received = NOT_COMPLETED;
 
 static uint8_t _rx_buff[RX_BUFFER_SIZE];
@@ -69,9 +69,12 @@ static uint32_t _parse_idx = 0;
 
 UART_HandleTypeDef CommUart;
 
+static TaskStatus_t last_task_state [20];
+static uint64_t last_total_tick_counter;
+
 void send_over_uart(const char * str)
 {
-	HAL_UART_Transmit(&CommUart, (uint8_t*)str, strlen(str), 10);
+	HAL_UART_Transmit(&CommUart, (uint8_t*) str, strlen(str), 100);
 }
 
 void comm_itf_print_string(const char * str)
@@ -79,26 +82,10 @@ void comm_itf_print_string(const char * str)
 	send_over_uart(str);
 }
 
-void comm_itf_print_float(float val)
-{
-	char arr[30];
-	my_ftoa(val, arr, 6);
-	comm_itf_print_string(arr);
-}
-
-void comm_itf_print_int(int val)
-{
-	char arr[20];
-	my_i32toa(val, arr);
-	comm_itf_print_string(arr);
-}
-
 void comm_itf_init()
 {
-	__HAL_RCC_GPIOD_CLK_ENABLE()
-	;
-	__HAL_RCC_USART2_CLK_ENABLE()
-	;
+	__HAL_RCC_GPIOD_CLK_ENABLE();
+	__HAL_RCC_USART2_CLK_ENABLE();
 
 	CommUart.Instance = USART2;
 	CommUart.Init.BaudRate = 57600;
@@ -107,10 +94,9 @@ void comm_itf_init()
 	CommUart.Init.Parity = UART_PARITY_NONE;
 	CommUart.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	CommUart.Init.Mode = UART_MODE_TX_RX;
-	CommUart.Init.OverSampling = UART_OVERSAMPLING_16;
+	CommUart.Init.OverSampling = UART_OVERSAMPLING_8;
 	if (HAL_UART_Init(&CommUart) != HAL_OK)
 	{
-		debug_print_string("comm itf HAL_UART_Init err!\r\n");
 		error_handler(0);
 	}
 
@@ -130,16 +116,17 @@ void comm_itf_init()
 	memset(_rx_buff, 0, sizeof(_rx_buff));
 	memset(_parser_buff, 0, sizeof(_parser_buff));
 	memset(&_print_map, DISABLE, sizeof(_print_map));
+	memset(&last_task_state, 0, sizeof(last_task_state));
 
 	if (HAL_UART_Receive_IT(&CommUart, &_rx_buff[0], RX_BUFFER_SIZE) != HAL_OK)
 	{
-		debug_print_string("comm itf HAL_UART_Receive_IT err!\r\n");
+		px4debug(eCOMMITF, "comm itf HAL_UART_Receive_IT err!\r\n");
 		error_handler(0);
 	}
 
 	_moule_state = ENABLE;
 
-	debug_print_string("\n\n\ncomm module init ok \r\n");
+	px4debug(eCOMMITF, "\n\n\ncomm module init ok \r\n");
 }
 
 static void check_rx_buff()
@@ -211,37 +198,45 @@ void comm_itf_task_function(void const * argv)
 
 void process_cyclic_print(void)
 {
+	static uint32_t timer = 0;
+	if (toc(timer) < 1000000)
+	{
+		return;
+	}
+
+	timer = tic();
+
 	if (_print_map.mag)
 	{
 		hmc5883_data_st data;
 		px4_hmc5883_get(&data);
-		px4debug(eCOMMITF, "mag: %f %f %f", data.magX, data.magY, data.magZ);
+		px4debug(eCOMMITF, "mag: %f %f %f \r\n", data.magX, data.magY, data.magZ);
 	}
 
 	if (_print_map.mpu_acc)
 	{
 		mpu6000_data_st data;
 		px4_mpu6000_get(&data);
-		px4debug(eCOMMITF, "mpu_acc: %f %f %f", data.accel_x, data.accel_y, data.accel_z);
+		px4debug(eCOMMITF, "mpu_acc: %f %f %f \r\n", data.accel_x, data.accel_y, data.accel_z);
 	}
 
 	if (_print_map.mpu_gyro)
 	{
 		mpu6000_data_st data;
 		px4_mpu6000_get(&data);
-		px4debug(eCOMMITF, "mpu_gyro %f %f %f", data.gyro_x, data.gyro_y, data.gyro_z);
+		px4debug(eCOMMITF, "mpu_gyro %f %f %f \r\n", data.gyro_x, data.gyro_y, data.gyro_z);
 	}
 
 	if (_print_map.cpu_load)
 	{
-		px4debug(eCOMMITF, "cpu load:%d\% peak:%d\%", cpu_load_get_curr_cpu_load(), cpu_load_get_max_cpu_load());
+		px4debug(eCOMMITF, "cpu load:%d%% peak:%d%% \r\n", cpu_load_get_curr_cpu_load(), cpu_load_get_max_cpu_load());
 	}
 
 	if (_print_map.gps_pos)
 	{
 		gps_rmc_packet_st pack;
 		px4_gps_get(&pack);
-		px4debug(eCOMMITF, "gps lat:%f lon:%f valid:%d\r\n", pack.Latitude, pack.Longitude, pack.Valid);
+		px4debug(eCOMMITF, "gps lat:%f lon:%f valid:%d \r\n", pack.Latitude, pack.Longitude, pack.Valid);
 	}
 
 	if (_print_map.gps_raw)
@@ -255,7 +250,7 @@ void process_cyclic_print(void)
 	{
 		ms5611_data_st data;
 		px4_ms5611_get(&data);
-		px4debug(eCOMMITF, "baro: %f", data.baroValue);
+		px4debug(eCOMMITF, "baro: %f \r\n", data.baroValue);
 	}
 
 	if (_print_map.rc_input)
@@ -269,12 +264,16 @@ void process_cyclic_print(void)
 			{
 				px4debug(eCOMMITF, "ch%d:%d", (i + 1), data.channels[i]);
 			}
-			px4debug(eCOMMITF,"\r\n");
+			px4debug(eCOMMITF, "\r\n");
 		}
 		else
 		{
 			px4debug(eCOMMITF, "no rc input data\r\n");
 		}
+	}
+	if(_print_map.top)
+	{
+		print_task_load();
 	}
 }
 
@@ -335,96 +334,139 @@ void process_received_cmd(void)
 	{
 		print_task_load();
 	}
+	else if (strncmp(buff, TOP, strlen(TOP)) == 0)
+	{
+		_print_map.top = !_print_map.top;
+	}
 	else if (strncmp(buff, "help", 4) == 0)
 	{
 		print_help();
 	}
 	else
 	{
-		px4debug(eCOMMITF, "UNKNOWN COMMAND! Type <help> for command info");
+		px4debug(eCOMMITF, "UNKNOWN COMMAND! Type <help> for command info \r\n");
 	}
 }
 
 void print_help()
 {
-	px4debug(eCOMMITF, "===============================");
-	px4debug(eCOMMITF, "= Follow commands are allowed =");
-	px4debug(eCOMMITF, "===============================");
-	px4debug(eCOMMITF, "\r\nCOMMANDS FOR SENSOR DATA");
-	px4debug(eCOMMITF, "------------------------");
-	px4debug(eCOMMITF, "'log acc' 	- log acceleration data ");
-	px4debug(eCOMMITF, "'log gyro' 	- log gyroscope sensor data ");
-	px4debug(eCOMMITF, "'log baro' 	- log barometer data ");
-	px4debug(eCOMMITF, "'log mag' 	- log compass data ");
-	px4debug(eCOMMITF, "'log pos' 	- log gps position ");
-	px4debug(eCOMMITF, "'log rmc' 	- log raw GPS-RMC-Sentence ");
-	px4debug(eCOMMITF, "'log rc' 	- log received remote control values ");
-	px4debug(eCOMMITF, "'log sim' 	- log values from signal logger ");
-	px4debug(eCOMMITF, "\r\nCOMMANDS FOR SD CARD FILE MANAGEMENT");
-	px4debug(eCOMMITF, "------------------------------------");
-	px4debug(eCOMMITF, "'list all' 		 - list all existing logfile names ");
-	px4debug(eCOMMITF, "'list <filename>' - list the logfile with name <filename> on console");
-	px4debug(eCOMMITF, "'del all' 		 - delete all log files ");
-	px4debug(eCOMMITF, "'del <filename>'  - delete the logfile with name <filename>");
-	px4debug(eCOMMITF, "\r\nOTHER COMANDS");
-	px4debug(eCOMMITF, "-------------");
-	px4debug(eCOMMITF, "'log cpu' 		- log cpu usage ");
-	px4debug(eCOMMITF, "'log runtime'	- log calculated runtimes of all modules");
-	px4debug(eCOMMITF, "'log off' 		- disable all logging ");
-	px4debug(eCOMMITF, "'taskload' 		- log task cpu usage since system start");
-	px4debug(eCOMMITF, "'top' 			- log cyclic task cpu usage");
-	px4debug(eCOMMITF, "===============================");
+	px4debug(eCOMMITF, "=============================== \r\n");
+	px4debug(eCOMMITF, "= Follow commands are allowed = \r\n");
+	px4debug(eCOMMITF, "===============================\r\n");
+	px4debug(eCOMMITF, "\r\nCOMMANDS FOR SENSOR DATA \r\n");
+	px4debug(eCOMMITF, "------------------------ \r\n");
+	px4debug(eCOMMITF, "'log acc' 	- log acceleration data\r\n");
+	px4debug(eCOMMITF, "'log gyro' 	- log gyroscope sensor data\r\n");
+	px4debug(eCOMMITF, "'log baro' 	- log barometer data\r\n");
+	px4debug(eCOMMITF, "'log mag' 	- log compass data\r\n");
+	px4debug(eCOMMITF, "'log pos' 	- log gps position\r\n");
+	px4debug(eCOMMITF, "'log rmc' 	- log raw GPS-RMC-Sentence\r\n");
+	px4debug(eCOMMITF, "'log rc' 	- log received remote control values\r\n");
+	px4debug(eCOMMITF, "'log sim' 	- log values from signal logger\r\n");
+	px4debug(eCOMMITF, "\r\nCOMMANDS FOR SD CARD FILE MANAGEMENT\r\n");
+	px4debug(eCOMMITF, "------------------------------------\r\n");
+	px4debug(eCOMMITF, "'list all'        - list all existing logfile names\r\n");
+	px4debug(eCOMMITF, "'list <filename>' - list the logfile with name <filename> on console\r\n");
+	px4debug(eCOMMITF, "'del all'         - delete all log files\r\n");
+	px4debug(eCOMMITF, "'del <filename>'  - delete the logfile with name <filename>\r\n");
+	px4debug(eCOMMITF, "\r\nOTHER COMANDS\r\n");
+	px4debug(eCOMMITF, "-------------\r\n");
+	px4debug(eCOMMITF, "'log cpu'       - log cpu usage\r\n");
+	px4debug(eCOMMITF, "'log runtime'   - log calculated runtimes of all modules\r\n");
+	px4debug(eCOMMITF, "'log off'       - disable all logging\r\n");
+	px4debug(eCOMMITF, "'taskload' 	    - log task cpu usage since last taskload call\r\n");
+	px4debug(eCOMMITF, "'top'           - log cyclic task cpu usage\r\n");
+	px4debug(eCOMMITF, "===============================\r\n");
+}
+
+int32_t find_index_of_task(TaskStatus_t * t, const char * s, uint32_t size)
+{
+
+	for (uint32_t i = 0; i < size; i++)
+		if (strcmp(t[i].pcTaskName, s) == 0)
+			return i;
+
+	return -1;
 }
 
 void print_task_load()
 {
-	TaskStatus_t val[10];
-	uint32_t total = 1;
-	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, 10, &total);
+	static uint32_t firstcall = 1;
 
-	px4debug(eCOMMITF, "TASK INFORMATION");
-	px4debug(eCOMMITF, "-------------------------");
-	px4debug(eCOMMITF, "\nTask name \t Stack water mark \t %CPU \n");
+	TaskStatus_t val[20];
+	uint32_t total = 1;
+	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, 20, &total);
+
+	if(firstcall)
+	{
+		firstcall = 0;
+		memcpy(last_task_state, val, sizeof(val));
+		last_total_tick_counter = total;
+		return;
+	}
+
+	px4debug(eCOMMITF, "\r\n\r\n");
+	px4debug(eCOMMITF, "=== TASK INFORMATION===\r\n");
+	px4debug(eCOMMITF, "----------------------- \r\n");
+	px4debug(eCOMMITF, "%-20s%-20s%-10s", "Task name", "|Stack watermark", "|CPU(%)\r\n");
+	px4debug(eCOMMITF, "--------------------------------------------------\r\n");
+
+	// print new calculated values since last call
 	for (unsigned int i = 0; i < size; i++)
 	{
-		px4debug(eCOMMITF, "%s\t%d\t%d", val[i].pcTaskName, val[i].usStackHighWaterMark, (val[i].ulRunTimeCounter * 100) / total);
+		int32_t ind = find_index_of_task((TaskStatus_t * const ) &last_task_state, val[i].pcTaskName, size);
+
+		if(ind == -1)
+			continue;
+
+		px4debug(eCOMMITF, "%-20s|%-20d|%-10d\r\n", val[i].pcTaskName, val[i].usStackHighWaterMark,
+				((val[i].ulRunTimeCounter - last_task_state[ind].ulRunTimeCounter) * 100) / (total - last_total_tick_counter));
 	}
-	px4debug(eCOMMITF, "-------------------------");
-}
+	px4debug(eCOMMITF, "--------------------------------------------------\r\n");
 
-/***********************************************************/
-#ifdef DEBUG
-void debug_print_int(int val)
-{
-	comm_itf_print_int(val);
-}
+	px4debug(eCOMMITF, "===== HEAP STATE =======\r\n");
+	size_t fr = xPortGetFreeHeapSize();
+	size_t mfr = xPortGetMinimumEverFreeHeapSize();
 
-void debug_print_float(float val)
-{
-	comm_itf_print_float(val);
-}
+	px4debug(eCOMMITF, "free: %d\r\n", fr);
+	px4debug(eCOMMITF, "min free: %d\r\n", mfr);
 
-void debug_print_string(const char * str)
-{
-	comm_itf_print_string(str);
+	px4debug(eCOMMITF, "-------------------------\r\n");
+
+	memcpy(last_task_state, val, sizeof(val));
+	last_total_tick_counter = total;
 }
 
 void px4debug(eTaskID id, char * MESSAGE, ...)
 {
 	va_list arg;
 	va_start(arg, MESSAGE);
+
 	int messageSize = 100;
-	char * pcStringToSend = (char *) pvPortMalloc(messageSize);
-	int cnt = vsnprintf(pcStringToSend, messageSize, MESSAGE, arg);
+	int cnt = -1;
 
-	if (cnt == messageSize)
+	if (id == eCOMMITF || id == eNONE || xTaskGetSchedulerState() != taskSCHEDULER_RUNNING)
 	{
-		px4debug(id, "WARNING! px4debug string size limit reached");
+		char arr[100];
+		cnt = vsnprintf(arr, messageSize, MESSAGE, arg);
+		if (cnt == messageSize-1)
+		{
+			comm_itf_print_string("WARNING! px4debug string size limit reached \r\n");
+		}
+		comm_itf_print_string(arr);
 	}
-
-	if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
+	else
 	{
+
+		char * pcStringToSend = (char *) pvPortMalloc(messageSize);
+		cnt = vsnprintf(pcStringToSend, messageSize, MESSAGE, arg);
+		if (cnt == messageSize)
+		{
+			px4debug(id, "WARNING! px4debug string size limit reached \r\n");
+		}
+
 		QueueHandle_t msgQueue = getHandleByEnum(id);
+		// check for eNONE
 
 		if (msgQueue != NULL)
 		{
@@ -439,39 +481,12 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 
 			}
 		}
-
 	}
-	else
-	{
-		comm_itf_print_string(pcStringToSend);
-		// free memory, because printing directly to output
-		vPortFree(pcStringToSend);
-	}
-
 	va_end(arg);
 }
 
-#else
-
-void mycustomprint(QueueHandle_t msgQueue, char * MESSAGE, ...)
-{
-	UNUSED(msgQueue);
-	UNUSED(MESSAGE);
-}
-
-#endif
-
-
-//---------------------------------------------------------------------------------
 void comm_itf_rx_complete_event()
 {
 	HAL_UART_Receive_IT(&CommUart, &_rx_buff[0], RX_BUFFER_SIZE); // Reload rx interrupt
 }
-
-
-
-
-
-
-
 

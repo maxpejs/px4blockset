@@ -135,19 +135,19 @@ static uint32_t _ms5611_init_sensor()
 	_C[5] = _get_prom_value(REG_MS5611_PROM_C5);	// Reference temperature
 	_C[6] = _get_prom_value(REG_MS5611_PROM_C6);	// Temperature coefficient of the temperature
 
-//	debug_print_string(" C1: ");
+//	px4debug(eMS5611," C1: ");
 //	debug_print_int(_C[1]);
-//	debug_print_string(" C2: ");
+//	px4debug(eMS5611," C2: ");
 //	debug_print_int(_C[2]);
-//	debug_print_string(" C3: ");
+//	px4debug(eMS5611," C3: ");
 //	debug_print_int(_C[3]);
-//	debug_print_string(" C4: ");
+//	px4debug(eMS5611," C4: ");
 //	debug_print_int(_C[4]);
-//	debug_print_string(" C5: ");
+//	px4debug(eMS5611," C5: ");
 //	debug_print_int(_C[5]);
-//	debug_print_string(" C6: ");
+//	px4debug(eMS5611," C6: ");
 //	debug_print_int(_C[6]);
-//	debug_print_string("\r\n");
+//	px4debug(eMS5611,"\r\n");
 
 	return SUCCESS;
 }
@@ -160,7 +160,7 @@ void px4_ms5611_init()
 	px4_spi_drv_init(PX4_SPI1);
 	_ms5611_init_sensor();
 	_module_state = ENABLE;
-	debug_print_string("ms5611 init ok \r\n");
+	px4debug(eMS5611, "ms5611 init ok \r\n");
 }
 
 uint32_t px4_ms5611_get_runtime()

@@ -51,22 +51,22 @@ typedef struct
 /**
 *	TODO
 */
-uint32_t _ring_buffer_full(ring_buff_data_st * b);
+uint32_t ring_buffer_full(ring_buff_data_st * b);
 
 /**
 *	TODO
 */
-uint32_t _ring_buffer_empty(ring_buff_data_st * b);
+uint32_t ring_buffer_empty(ring_buff_data_st * b);
 
 /**
 *	TODO
 */
-uint32_t _ring_buffer_free_space(ring_buff_data_st * b);
+uint32_t ring_buffer_free_space(ring_buff_data_st * b);
 
 /**
 *	TODO
 */
-uint32_t _ring_buffer_count(ring_buff_data_st * b);
+uint32_t ring_buffer_count(ring_buff_data_st * b);
 
 
 

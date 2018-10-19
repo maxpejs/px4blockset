@@ -89,7 +89,7 @@ void px4_pwm_aux_out_init(uint16_t * pwm_freqs)
 	HAL_TIM_PWM_Start(&TimHandler4, TIM_CHANNEL_3);	// aux6
 
 	_module_ready = ENABLE;
-	debug_print_string("pwm_aux_out init ok\r\n");
+	px4debug(eAUX_PWM, "pwm_aux_out init ok\r\n");
 }
 
 void px4_pwm_aux_out_write_impulse(uint16_t * impulse_values)

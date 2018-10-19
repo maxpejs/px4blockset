@@ -40,7 +40,7 @@ static void set_arm_state(uint8_t ena)
 	}
 	else
 	{
-		debug_print_string("change pwm arm err!\r\n");
+		px4debug(ePWM_MAIN, "change pwm arm err!\r\n");
 	}
 }
 
@@ -66,7 +66,7 @@ static void set_safety_off_state(uint8_t ena)
 	}
 	else
 	{
-		debug_print_string("change safety off err!\r\n");
+		px4debug(ePWM_MAIN, "change safety off err!\r\n");
 	}
 }
 
@@ -77,30 +77,30 @@ void px4_pwm_main_out_init(pwm_main_out_settings_st * settings)
 
 	if (internal_reg_mod(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) != SUCCESS)
 	{
-		debug_print_string("reg mod PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED err\r\n");
+		px4debug(ePWM_MAIN,"reg mod PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED err\r\n");
 	}
 
 	if (internal_reg_mod(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_IO_ARM_OK) != SUCCESS)
 	{
-		debug_print_string("reg mod PX4IO_P_SETUP_ARMING_IO_ARM_OK err\r\n");
+		px4debug(ePWM_MAIN,"reg mod PX4IO_P_SETUP_ARMING_IO_ARM_OK err\r\n");
 	}
 
 	/* SET PWM DEFAULT RATE */
 	if (internal_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE, &(settings->def_pwm_rate), 1) != SUCCESS)
 	{
-		debug_print_string("set def pwm rate err\r\n");
+		px4debug(ePWM_MAIN,"set def pwm rate err\r\n");
 	}
 
 	/* SET PWM ALTERNATE RATE */
 	if (internal_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE, &(settings->alt_pwm_rate), 1) != SUCCESS)
 	{
-		debug_print_string("set alt pwm rate err\r\n");
+		px4debug(ePWM_MAIN,"set alt pwm rate err\r\n");
 	}
 
 	/* SET PWM RATE BITMASK*/
 	if (internal_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES, &(settings->pwm_mask), 1) != SUCCESS)
 	{
-		debug_print_string("set pwm mask err\r\n");
+		px4debug(ePWM_MAIN,"set pwm mask err\r\n");
 	}
 
 	set_safety_off_state(DISABLE);
@@ -108,7 +108,7 @@ void px4_pwm_main_out_init(pwm_main_out_settings_st * settings)
 
 	_module_ready = ENABLE;
 
-	debug_print_string("pwm_main_out init ok\r\n");
+	px4debug(ePWM_MAIN,"pwm_main_out init ok\r\n");
 }
 
 void px4_pwm_main_out_set(pwm_main_out_data_st * new_data)
@@ -165,7 +165,7 @@ void px4_pwm_main_out_task_function(void const * argv)
 	// send PWM values to PXIO as impulse duration in µs for given pwm channels
 	if (pxio_driver_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, &(_pwm_output_data[temp_idx].values[0]), MAX_MAIN_OUT_SERVO_CNT) != SUCCESS)
 	{
-		debug_print_string("set direct main out pwms err \r\n");
+		px4debug(ePWM_MAIN,"set direct main out pwms err \r\n");
 	}
 	
 	_main_out_runtime = toc(start);

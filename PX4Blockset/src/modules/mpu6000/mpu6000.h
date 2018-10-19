@@ -48,6 +48,7 @@
 #define MPU6000_DISA      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, SET)
 
 #define MPU6000_CFG		    	0x1A
+
 #define DLPF_CFG_256HZ         	0x00
 #define DLPF_CFG_188HZ         	0x01
 #define DLPF_CFG_98HZ          	0x02

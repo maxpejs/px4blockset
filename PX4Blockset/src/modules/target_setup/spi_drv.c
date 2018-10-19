@@ -45,9 +45,7 @@ uint8_t px4_spi_drv_init(uint32_t spi_id)
 
 	if (HAL_SPI_Init(SpiHandle) != HAL_OK)
 	{
-		debug_print_string("HAL_SPI_Init error! SPI: ");
-		debug_print_int(spi_id);
-		debug_print_string("\r\n");
+		comm_itf_print_string("HAL_SPI_Init error!\r\n");
 		error_handler(0);
 	}
 
@@ -68,7 +66,7 @@ uint8_t px4_spi_drv_transmit(uint32_t spi_id, uint8_t * txBuff, uint8_t * rxBuff
 	}
 	else
 	{
-		debug_print_string("spi transmit error!\r\n");
+		comm_itf_print_string("spi transmit error!\r\n");
 		return ERROR;
 	}
 }
@@ -83,12 +81,7 @@ void px4_spi_drv_set_clock_speed(uint32_t spi_id, uint32_t prescaler)
 
 	if (HAL_SPI_Init(&SPI_Handles[spi_id]) != HAL_OK)
 	{
-		debug_print_string("HAL_SPI_Init error! SPI: ");
-		debug_print_int(spi_id);
-		debug_print_string("\r\n");
+		comm_itf_print_string("HAL_SPI_Init error!\r\n");
 		error_handler(0);
 	}
 }
-
-
-

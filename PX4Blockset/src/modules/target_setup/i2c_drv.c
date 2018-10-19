@@ -45,9 +45,7 @@ uint8_t px4_i2c_drv_init(uint32_t i2c_id)
 
 	if (HAL_I2C_Init(&I2C_Handles[i2c_id]) != HAL_OK)
 	{
-		debug_print_string("HAL_I2C_Init error! I2C: ");
-		debug_print_int(i2c_id);
-		debug_print_string("\r\n");
+		comm_itf_print_string("HAL_I2C_Init error! I2C\r\n");
 		error_handler(0);
 	}
 
@@ -69,7 +67,7 @@ uint8_t px4_i2c_drv_transmit(uint32_t i2c_id, uint16_t i2c_address, uint8_t * tx
 		{
 			if (HAL_I2C_GetError(&I2C_Handles[i2c_id]) != HAL_I2C_ERROR_AF)
 			{
-				debug_print_string("HAL_I2C_Master_Transmit err!\r\n");
+				comm_itf_print_string("HAL_I2C_Master_Transmit err!\r\n");
 				return ERROR;
 			}
 		}
@@ -92,7 +90,7 @@ uint8_t px4_i2c_drv_receive(uint32_t i2c_id, uint16_t i2c_address, uint8_t * rxB
 
 			if (HAL_I2C_GetError(&I2C_Handles[i2c_id]) != HAL_I2C_ERROR_AF)
 			{
-				debug_print_string("HAL_I2C_Master_Receive err!\r\n");
+				comm_itf_print_string("HAL_I2C_Master_Receive err!\r\n");
 				return ERROR;
 			}
 		}
@@ -112,9 +110,7 @@ void px4_i2c_drv_set_clock_speed(uint32_t i2c_id, uint32_t clock_speed)
 
 	if (HAL_I2C_Init(&I2C_Handles[i2c_id]) != HAL_OK)
 	{
-		debug_print_string("HAL_I2C_Init error! I2C: ");
-		debug_print_int(i2c_id);
-		debug_print_string("\r\n");
+		comm_itf_print_string("HAL_I2C_Init error!\r\n");
 		error_handler(0);
 	}
 }

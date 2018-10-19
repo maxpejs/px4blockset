@@ -56,24 +56,14 @@
 #include <utilities.h>
 #include <tasks.h>
 
-uint32_t app_runtime;
-
 /* regular functions for printing any pixhawk sensor informations like calibration info */
 void comm_itf_init();
 void comm_itf_rx_complete_event(void);
 void comm_itf_task_function(void const * argv);
 
-/* debug functions */
-void debug_print_int(int val);
-void debug_print_float(float val);
-void debug_print_string(const char * str);
-
 void px4debug(eTaskID id, char * MESSAGE, ...);
 
 /* print functions */
-void comm_itf_print_int(int val);
-void comm_itf_print_float(float val);
 void comm_itf_print_string(const char * str);
-
 
 #endif // COMM_ITF_H

@@ -62,7 +62,7 @@ extern void px4_gps_rx_complete_event(void);
  */
 void NMI_Handler(void)
 {
-	debug_print_string("NMI_Handler\n");
+	comm_itf_print_string("NMI_Handler\n");
 	while (1)
 	{
 		error_handler(0);
@@ -76,7 +76,7 @@ void NMI_Handler(void)
  */
 void HardFault_Handler(void)
 {
-	debug_print_string("Hard Fault\n");
+	comm_itf_print_string("Hard Fault\n");
 	/* Go to infinite loop when Hard Fault exception occurs */
 	while (1)
 	{
@@ -91,7 +91,7 @@ void HardFault_Handler(void)
  */
 void MemManage_Handler(void)
 {
-	debug_print_string("NMI_Handler\n");
+	comm_itf_print_string("NMI_Handler\n");
 	/* Go to infinite loop when Memory Manage exception occurs */
 	while (1)
 	{
@@ -106,7 +106,7 @@ void MemManage_Handler(void)
  */
 void BusFault_Handler(void)
 {
-	debug_print_string("BusFault_Handler\n");
+	comm_itf_print_string("BusFault_Handler\n");
 	/* Go to infinite loop when Bus Fault exception occurs */
 	while (1)
 	{
@@ -121,7 +121,7 @@ void BusFault_Handler(void)
  */
 void UsageFault_Handler(void)
 {
-	debug_print_string("UsageFault_Handler Fault occured! \n");
+	comm_itf_print_string("UsageFault_Handler Fault occured! \n");
 	/* Go to infinite loop when Usage Fault exception occurs */
 	while (1)
 	{
@@ -136,7 +136,7 @@ void UsageFault_Handler(void)
  */
 void DebugMon_Handler(void)
 {
-	debug_print_string("DebugMon_Handler Fault occured! \n");
+	comm_itf_print_string("DebugMon_Handler Fault occured! \n");
 	while (1)
 	{
 		error_handler(0);
