@@ -1,2 +1,2 @@
 # px4blockset
-Simulink Blockset for Pixhawk 4
+Simulink Blockset for Pixhawk auto pilot v1
