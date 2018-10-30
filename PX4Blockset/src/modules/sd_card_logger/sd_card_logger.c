@@ -249,13 +249,13 @@ static void _write_to_sd_card(sd_card_file_info_st * info)
 
 		numofsamples = numofsamples > MAX_PACKAGE_SIZE_CNT ? MAX_PACKAGE_SIZE_CNT : numofsamples;
 
-		fr = f_write(&(info->fi), (const void*) &info->rbuff.buff[idxRead], sizeof(data_st) * numofsamples, &writtenbytes);
+		fr = f_write(&(info->fi), (const void*) &info->rbuff.buff[idxRead], sizeof(log_dataset_st) * numofsamples, &writtenbytes);
 		f_sync(&(info->fi));
 
-		if ((fr != FR_OK) || (writtenbytes != sizeof(data_st) * numofsamples))
+		if ((fr != FR_OK) || (writtenbytes != sizeof(log_dataset_st) * numofsamples))
 		{
 			px4debug(eSDCARD, "Error at writing data entry, or number of written bytes doesn't match. "
-					"idx: %d. %d vs. %d\r\n", idxRead, sizeof(data_st) * numofsamples, writtenbytes);
+					"idx: %d. %d vs. %d\r\n", idxRead, sizeof(log_dataset_st) * numofsamples, writtenbytes);
 		}
 		else
 		{
@@ -618,7 +618,7 @@ static void _list_single_file(char * path)
 	FRESULT res;
 
 	FIL f;
-	data_st data;
+	log_dataset_st data;
 	UINT bytesread_sigcnt, bytesread_sampletime;
 	// char arr[150];
 	uint32_t sig_cnt, sampletime;
@@ -663,7 +663,7 @@ static void _list_single_file(char * path)
 		return;
 	}
 
-	packagesize = sizeof(data_st);
+	packagesize = sizeof(log_dataset_st);
 
 	px4debug(eSDCARD, "=== BEGIN ===\r\n");
 

@@ -2,7 +2,7 @@
 
 static uint32_t 			_module_state = DISABLE;
 static mpu6000_data_st 		_mpu6000_data_storage[2];
-static uint32_t storageIdx;
+static uint32_t _storage_idx;
 static mpu6000_settings_st 	_settings;
 
 static float _accelScale 	= 1.f;
@@ -31,13 +31,13 @@ void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 	_accelScale = getAccelScale(_settings.accel_range);
 	_gyroScale  = getGyroScale(_settings.gyro_range);
 
-	storageIdx = 0;
+	_storage_idx = 0;
 
 	_module_state = ENABLE;
 	px4debug(eMPU6000, "mpu6000 init ok");
 }
 
-void px4_mpu6000_task_function()
+void px4_mpu6000_update(void const * argv)
 {
 	uint32_t start = tic();
 
@@ -58,16 +58,16 @@ void px4_mpu6000_task_function()
 	if (px4_spi_drv_transmit(PX4_SPI1, rxBuff, rxBuff, MPU_MSG_BUFFERSIZE) == SUCCESS)
 	{
 		// register values are stored beginning from rxBuff[1]
-		_mpu6000_data_storage[storageIdx].accel_x = (calc_accel(rxBuff[1], rxBuff[2]) * _settings.scale_accel_x) + _settings.offset_accel_x;
-		_mpu6000_data_storage[storageIdx].accel_y = (calc_accel(rxBuff[3], rxBuff[4]) * _settings.scale_accel_y) + _settings.offset_accel_y;
-		_mpu6000_data_storage[storageIdx].accel_z = (calc_accel(rxBuff[5], rxBuff[6]) * _settings.scale_accel_z) + _settings.offset_accel_z;
-		_mpu6000_data_storage[storageIdx].temp 	 = calc_temp(rxBuff[7],  rxBuff[8]);
-		_mpu6000_data_storage[storageIdx].gyro_x = calc_gyro(rxBuff[9],  rxBuff[10]);
-		_mpu6000_data_storage[storageIdx].gyro_y = calc_gyro(rxBuff[11], rxBuff[12]);
-		_mpu6000_data_storage[storageIdx].gyro_z = calc_gyro(rxBuff[13], rxBuff[14]);
+		_mpu6000_data_storage[_storage_idx].accel_x = (calc_accel(rxBuff[1], rxBuff[2]) * _settings.scale_accel_x) + _settings.offset_accel_x;
+		_mpu6000_data_storage[_storage_idx].accel_y = (calc_accel(rxBuff[3], rxBuff[4]) * _settings.scale_accel_y) + _settings.offset_accel_y;
+		_mpu6000_data_storage[_storage_idx].accel_z = (calc_accel(rxBuff[5], rxBuff[6]) * _settings.scale_accel_z) + _settings.offset_accel_z;
+		_mpu6000_data_storage[_storage_idx].temp 	 = calc_temp(rxBuff[7],  rxBuff[8]);
+		_mpu6000_data_storage[_storage_idx].gyro_x = calc_gyro(rxBuff[9],  rxBuff[10]);
+		_mpu6000_data_storage[_storage_idx].gyro_y = calc_gyro(rxBuff[11], rxBuff[12]);
+		_mpu6000_data_storage[_storage_idx].gyro_z = calc_gyro(rxBuff[13], rxBuff[14]);
 
 		// toggle storage index
-		storageIdx = (storageIdx + 1) % 2;
+		_storage_idx = (_storage_idx + 1) % 2;
 
 	}
 	MPU6000_DISA;
@@ -118,7 +118,7 @@ static float calc_temp(uint8_t hb, uint8_t lb)
 void px4_mpu6000_get(mpu6000_data_st * data)
 {
 	// get storage read index
-	uint32_t i = (storageIdx + 1) % 2;
+	uint32_t i = (_storage_idx + 1) % 2;
 	memcpy(data, &_mpu6000_data_storage[i], sizeof(mpu6000_data_st));
 }
 
@@ -162,6 +162,7 @@ static void mpu6000_init_sensor()
 
 		HAL_Delay(100);
 
+		// wite settings to register
 		mpu6000_reg_set(PWR_MGMT_1, 	MPU_CLK_SEL_PLLGYROZ); 	HAL_Delay(10);
 		mpu6000_reg_set(USER_CTRL, 		BIT_I2C_IF_DIS);		HAL_Delay(10);
 		mpu6000_reg_set(PWR_MGMT_2, 	0x00);					HAL_Delay(10);
@@ -170,6 +171,7 @@ static void mpu6000_init_sensor()
 		mpu6000_reg_set(MPU6000_GYRO_CONFIG, 	_settings.gyro_range);	HAL_Delay(10);
 		mpu6000_reg_set(MPU6000_ACCEL_CONFIG,	_settings.accel_range);	HAL_Delay(10);
 
+		// read settings from sensor
 		r1 = mpu6000_reg_get(PWR_MGMT_1); 	HAL_Delay(10);
 		r2 = mpu6000_reg_get(USER_CTRL);	HAL_Delay(10);
 		r3 = mpu6000_reg_get(PWR_MGMT_2);	HAL_Delay(10);
@@ -178,6 +180,7 @@ static void mpu6000_init_sensor()
 		r6 = mpu6000_reg_get(MPU6000_GYRO_CONFIG);	HAL_Delay(10);
 		r7 = mpu6000_reg_get(MPU6000_ACCEL_CONFIG);
 
+		// check if settings were set correct
 		if (r1 != MPU_CLK_SEL_PLLGYROZ)
 			px4debug(eMPU6000,"PWR_MGMT_1\r\n");
 
@@ -216,7 +219,3 @@ static void mpu6000_init_sensor()
 	}
 }
 
-uint32_t px4_mpu6000_get_runtime()
-{
-	return _mpu6000_runtime;
-}

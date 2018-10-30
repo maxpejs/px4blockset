@@ -76,9 +76,10 @@ typedef struct
  */
 typedef struct
 {
-	float magX;	// magnitude along x axis
-	float magY;	// ... y axis
-	float magZ;	// ... z axis
+	float 		magX;	// magnitude along x axis
+	float 		magY;	// ... y axis
+	float 		magZ;	// ... z axis
+	uint32_t 	isNew;
 }hmc5883_data_st;
 
 
@@ -97,9 +98,5 @@ void px4_hmc5883_get(hmc5883_data_st * data);
 */
 void px4_hmc5883_update();
 
-/**
-*	Returns current runtime of tx command
-*/
-uint32_t px4_hmc5883_getruntime(void);
 
 #endif // HMC5883_H

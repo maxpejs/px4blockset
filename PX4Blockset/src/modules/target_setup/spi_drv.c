@@ -4,16 +4,17 @@
 
 static SPI_HandleTypeDef SPI_Handles[CNT_SPI_ITF];
 
-static uint32_t _init_flag[CNT_SPI_ITF] 	   = {DISABLE, DISABLE, DISABLE, DISABLE, DISABLE, DISABLE};
+static uint32_t _init_flag[CNT_SPI_ITF] =
+{ DISABLE, DISABLE, DISABLE, DISABLE, DISABLE, DISABLE };
 
 uint8_t px4_spi_drv_init(uint32_t spi_id)
 {
-	if(spi_id >= CNT_SPI_ITF)
+	if (spi_id >= CNT_SPI_ITF)
 	{
 		return ERROR;
 	}
 
-	if(_init_flag[spi_id] == ENABLE)
+	if (_init_flag[spi_id] == ENABLE)
 	{
 		return SUCCESS; // spi already enabled
 	}
@@ -32,20 +33,20 @@ uint8_t px4_spi_drv_init(uint32_t spi_id)
 	}
 
 	SpiHandle->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
-	SpiHandle->Init.Direction         = SPI_DIRECTION_2LINES;
-	SpiHandle->Init.CLKPhase          = SPI_PHASE_2EDGE;
-	SpiHandle->Init.CLKPolarity       = SPI_POLARITY_HIGH;
-	SpiHandle->Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
-	SpiHandle->Init.CRCPolynomial     = 7;
-	SpiHandle->Init.DataSize          = SPI_DATASIZE_8BIT;
-	SpiHandle->Init.FirstBit          = SPI_FIRSTBIT_MSB;
-	SpiHandle->Init.NSS               = SPI_NSS_SOFT;
-	SpiHandle->Init.TIMode            = SPI_TIMODE_DISABLE;
-	SpiHandle->Init.Mode 			  = SPI_MODE_MASTER;
+	SpiHandle->Init.Direction = SPI_DIRECTION_2LINES;
+	SpiHandle->Init.CLKPhase = SPI_PHASE_2EDGE;
+	SpiHandle->Init.CLKPolarity = SPI_POLARITY_HIGH;
+	SpiHandle->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+	SpiHandle->Init.CRCPolynomial = 7;
+	SpiHandle->Init.DataSize = SPI_DATASIZE_8BIT;
+	SpiHandle->Init.FirstBit = SPI_FIRSTBIT_MSB;
+	SpiHandle->Init.NSS = SPI_NSS_SOFT;
+	SpiHandle->Init.TIMode = SPI_TIMODE_DISABLE;
+	SpiHandle->Init.Mode = SPI_MODE_MASTER;
 
 	if (HAL_SPI_Init(SpiHandle) != HAL_OK)
 	{
-		comm_itf_print_string("HAL_SPI_Init error!\r\n");
+		px4debug(eDRV, "HAL_SPI_Init error!\r\n");
 		error_handler(0);
 	}
 
@@ -66,14 +67,14 @@ uint8_t px4_spi_drv_transmit(uint32_t spi_id, uint8_t * txBuff, uint8_t * rxBuff
 	}
 	else
 	{
-		comm_itf_print_string("spi transmit error!\r\n");
+		px4debug(eDRV, "spi transmit error!\r\n");
 		return ERROR;
 	}
 }
 
 void px4_spi_drv_set_clock_speed(uint32_t spi_id, uint32_t prescaler)
 {
-	if (spi_id > 5)
+	if (spi_id >= CNT_SPI_ITF)
 	{
 		return;
 	}
@@ -81,7 +82,7 @@ void px4_spi_drv_set_clock_speed(uint32_t spi_id, uint32_t prescaler)
 
 	if (HAL_SPI_Init(&SPI_Handles[spi_id]) != HAL_OK)
 	{
-		comm_itf_print_string("HAL_SPI_Init error!\r\n");
+		px4debug(eDRV, "HAL_SPI_Init error!\r\n");
 		error_handler(0);
 	}
 }

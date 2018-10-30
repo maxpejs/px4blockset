@@ -31,10 +31,11 @@
 #include "hmc5883.h"
 
 static uint32_t  _module_state 		= DISABLE;
-static uint32_t _hmc5883_runtime	= 0;
 
-static hmc5883_data_st 		_hmc5883_data_storage;
+static hmc5883_data_st 		_hmc5883_data_storage[2];
 static hmc5883_settings_st 	_settings;
+
+static uint32_t storage_idx = 0;
 
 static uint32_t hmc5883_enable(void);
 static uint32_t _get_scale(void);
@@ -42,7 +43,7 @@ static uint32_t _get_scale(void);
 void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 {
 	// copy settings to internal var
-	memcpy(&_settings, in_settings, sizeof(hmc5883_settings_st));
+	memcpy(&_settings, in_settings, sizeof(_settings));
 	memset(&_hmc5883_data_storage, 0, sizeof(_hmc5883_data_storage));
 
 	px4_i2c_drv_init(HMC5883_I2C_ITF);
@@ -61,8 +62,6 @@ void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 
 void px4_hmc5883_update()
 {
-	uint32_t start = tic();
-
 	if (_module_state == DISABLE)
 	{
 		return;
@@ -86,12 +85,15 @@ void px4_hmc5883_update()
 		return;
 	}
 
-	float scale = (float)_get_scale();
-	_hmc5883_data_storage.magX = (float)TWO_UINT8_TO_INT16(rx[0], rx[1]) / scale;
-	_hmc5883_data_storage.magZ = (float)TWO_UINT8_TO_INT16(rx[2], rx[3]) / scale;
-	_hmc5883_data_storage.magY = (float)TWO_UINT8_TO_INT16(rx[4], rx[5]) / scale;
+	// toggle storage index
+	uint32_t id = (storage_idx + 1) % 2;
 
-	_hmc5883_runtime = toc(start);
+	float scale = (float)_get_scale();
+	_hmc5883_data_storage[id].magX = (float)TWO_UINT8_TO_INT16(rx[0], rx[1]) / scale;
+	_hmc5883_data_storage[id].magZ = (float)TWO_UINT8_TO_INT16(rx[2], rx[3]) / scale;
+	_hmc5883_data_storage[id].magY = (float)TWO_UINT8_TO_INT16(rx[4], rx[5]) / scale;
+	_hmc5883_data_storage[id].isNew = 1;
+	storage_idx = id;
 }
 
 static uint32_t _get_scale(void)
@@ -113,7 +115,8 @@ static uint32_t _get_scale(void)
 
 void px4_hmc5883_get(hmc5883_data_st * data)
 {
-	memcpy(data, &_hmc5883_data_storage, sizeof(hmc5883_data_st));
+	memcpy(data, &_hmc5883_data_storage[storage_idx], sizeof(hmc5883_data_st));
+	_hmc5883_data_storage[storage_idx].isNew = 0;
 }
 
 static uint32_t hmc5883_enable(void)
@@ -142,7 +145,4 @@ static uint32_t hmc5883_enable(void)
 	return result;
 }
 
-uint32_t px4_hmc5883_getruntime(void)
-{
-	return _hmc5883_runtime;
-}
+

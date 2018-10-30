@@ -83,10 +83,5 @@ void px4_pwm_main_out_set(pwm_main_out_data_st * data);
 */
 void px4_pwm_main_out_task_function(void const * argv);
 
-/**
-*	Returns current runtime of tx command for set pwm impulse values to pxio
-*/
-uint32_t px4_pwm_main_out_getruntime(void);
-
 
 #endif // PWM_MAIN_OUT_H

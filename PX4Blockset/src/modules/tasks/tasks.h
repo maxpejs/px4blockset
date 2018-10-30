@@ -17,6 +17,7 @@ typedef void (* callback_t)(void const * argv);
 typedef enum
 {
 	eNONE = 0,	// is used for printing to console only still no schedule is running
+	eDRV,		// enum defined only for logging low level driver messages (spi, i2c, pxio)
 	eAPPL,
 	eAUX_PWM,
 	ePWM_MAIN,
@@ -51,13 +52,13 @@ typedef struct
 	osThreadId 	threadID;
 	uint32_t 	stackSize;
 	uint32_t 	taskPrio;
-	char  		name[20];
+	char  		name[10];
 	uint32_t 	sampleTime;
 	callback_t 	taskFunction;
 	eTaskID 	taskID;
-	SemaphoreHandle_t * mutex;
-	QueueHandle_t msgQueue;
+	SemaphoreHandle_t mutex;
 	QueueSetHandle_t queueSet;
+	QueueHandle_t msgQueue;
 }px4_task;
 
 /**
@@ -76,6 +77,6 @@ void px4_tasks_run();
 */
 void px4_tasks_register_task(eTaskID id, const char * name, callback_t func, uint32_t sampleTime, uint32_t stacksize, uint32_t taskPrio);
 
-QueueHandle_t getHandleByEnum(eTaskID id);
+QueueHandle_t getQueueHandleByEnum(eTaskID id);
 
 #endif // TASKS_H

@@ -445,6 +445,8 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 	int messageSize = 100;
 	int cnt = -1;
 
+	// if we logging from comm module, or specific logging (startup routienes)
+	// or if no sceduler is running (queue mechanism doesn't active yet)
 	if (id == eCOMMITF || id == eNONE || xTaskGetSchedulerState() != taskSCHEDULER_RUNNING)
 	{
 		char arr[100];
@@ -457,7 +459,8 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 	}
 	else
 	{
-
+		// logging from regular modules and sceduler is already running
+		// so create a message and send over queue to comm task
 		char * pcStringToSend = (char *) pvPortMalloc(messageSize);
 		cnt = vsnprintf(pcStringToSend, messageSize, MESSAGE, arg);
 		if (cnt == messageSize)
@@ -465,20 +468,18 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 			px4debug(id, "WARNING! px4debug string size limit reached \r\n");
 		}
 
-		QueueHandle_t msgQueue = getHandleByEnum(id);
-		// check for eNONE
-
+		QueueHandle_t msgQueue = getQueueHandleByEnum(id);
 		if (msgQueue != NULL)
 		{
 			if ( xQueueSend(msgQueue, &pcStringToSend, 0) != pdTRUE)
 			{
-				comm_itf_print_string("Queue is full");
-				// free memory, because adding to queue was failed
+				comm_itf_print_string("Queue is full \r\n");
+				// adding to queue failed, free memory
 				vPortFree(pcStringToSend);
 			}
 			else
 			{
-
+				comm_itf_print_string("Couldn't sent queue message \r\n");
 			}
 		}
 	}

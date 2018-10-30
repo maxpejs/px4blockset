@@ -7,11 +7,11 @@
 void Common_Task(void const * argv);
 
 px4_task _tasklist[eMaxCount];
-SemaphoreHandle_t _mpu6000Mutex, _pxioMutex;
+SemaphoreHandle_t _spiMutex, _pxioMutex;
 
 static QueueSetHandle_t commQueueSet = NULL;
 
-QueueHandle_t getHandleByEnum(eTaskID id)
+QueueHandle_t getQueueHandleByEnum(eTaskID id)
 {
 	return _tasklist[id].msgQueue;
 }
@@ -36,20 +36,20 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 	{
 
 	case ePWM_MAIN:
-		_tasklist[id].mutex = &_pxioMutex;
+		_tasklist[id].mutex = _pxioMutex;
 
 		break;
 
 	case ePPM_INPUT:
-		_tasklist[id].mutex = &_pxioMutex;
+		_tasklist[id].mutex = _pxioMutex;
 		break;
 
 	case eMPU6000:
-		_tasklist[id].mutex = &_mpu6000Mutex;
+		_tasklist[id].mutex = _spiMutex;
 		break;
 
 	case eMS5611:
-		_tasklist[id].mutex = &_mpu6000Mutex;
+		_tasklist[id].mutex = _spiMutex;
 		break;
 
 	case eCOMMITF:
@@ -86,14 +86,14 @@ void Common_Task(void const * argv)
 	uint32_t mutex_exist = task->mutex != NULL;
 	uint32_t mutex_taken = DISABLE;
 
-	// if mutex is available, use the half of the sample time as wait time for reserving the mutex
+	// if mutex is available, use the half of the sample time as wait time for reserving the mutex, but at least 1 ms
 	uint32_t mutex_wait_time = (task->sampleTime > 1) ? (task->sampleTime / 2) : 1;
 
 	while (1)
 	{
 		if (mutex_exist)
 		{
-			mutex_taken = xSemaphoreTake(*(task->mutex), mutex_wait_time);
+			mutex_taken = xSemaphoreTake(task->mutex, mutex_wait_time);
 		}
 
 		if(mutex_exist & !mutex_taken)
@@ -105,11 +105,11 @@ void Common_Task(void const * argv)
 		{
 			if (task->taskFunction != NULL)
 			{
-				task->taskFunction(argv);
+				task->taskFunction(argv); // execute task function
 			}
 			if (mutex_exist)
 			{
-				xSemaphoreGive(*(task->mutex));
+				xSemaphoreGive(task->mutex);
 			}
 		}
 		osDelayUntil(&xLastWakeTime, task->sampleTime);
@@ -119,11 +119,11 @@ void Common_Task(void const * argv)
 void px4_tasks_initialize()
 {
 	memset(_tasklist, 0, sizeof(_tasklist));
-	_mpu6000Mutex 	= xSemaphoreCreateMutex();
+	_spiMutex 	= xSemaphoreCreateMutex();
 	_pxioMutex 		= xSemaphoreCreateMutex();
 	commQueueSet = xQueueCreateSet(eMaxCount * MSG_QUEUE_SIZE);
 
-	if(commQueueSet == NULL || _mpu6000Mutex == NULL || _pxioMutex == NULL)
+	if(commQueueSet == NULL || _spiMutex == NULL || _pxioMutex == NULL)
 	{
 		px4debug(eNONE, "Tasks init error\r\n");
 	}
@@ -131,6 +131,9 @@ void px4_tasks_initialize()
 	{
 		px4debug(eNONE, "Tasks init ok\r\n");
 	}
+
+	_tasklist[eDRV].msgQueue 	= xQueueCreate(MSG_QUEUE_SIZE, sizeof(char*));
+	xQueueAddToSet(_tasklist[eDRV].msgQueue, commQueueSet);
 
 }
 

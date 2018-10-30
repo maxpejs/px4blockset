@@ -51,9 +51,4 @@ void px4_signal_output_task(void);
 */
 void px4_signal_output_set_log(uint8_t state);
 
-/**
- * TODO
- */
-uint32_t px4_signal_output_getruntime(void);
-
 #endif // SIGNAL_OUTPUT_H

@@ -7,19 +7,19 @@ typedef struct
 	uint32_t write;
 }ring_buffer;
 
-static uint8_t  _parser_buff[GPS_SENTENCE_BUFF_SIZE];
-static uint8_t  _parser_buffer_last[GPS_SENTENCE_BUFF_SIZE];
+static uint8_t  			_parser_buff[2][GPS_SENTENCE_BUFF_SIZE];
+static gps_rmc_packet_st 	_rmc_storage[2];
+
 static uint8_t  _crc_idx 	 = 0;
 static uint8_t  _recv_crc 	 = 0;
 static uint32_t _time_rx_last_rmc_msg = 0;
 static uint8_t  _module_state 	 	  = DISABLE;
 
-static gps_rmc_packet_st _rmc_storage;
 static ring_buffer 	  _rb;
 
-UART_HandleTypeDef GpsUart;
+static uint32_t _storage_idx = 0;
 
-static uint32_t _runtimes_arr[4]; // 0 - rmc string parsing time, 1 - update time, 2 - crc runtime, 3 - rx interrupt runtime
+UART_HandleTypeDef GpsUart;
 
 // internal functions
 static 			uint8_t 	calculate_nmea_crc(uint8_t * buff);
@@ -28,11 +28,6 @@ static inline 	uint32_t 	ring_buffer_empty(ring_buffer * b);
 static 			uint32_t 	ring_buffer_free_space(ring_buffer * b);
 static 			void 		state_machine_process_new_byte(uint8_t rxChar);
 static 			void 		gps_setup_uart(uint32_t baud);
-
-
-/******* FOR TESTS *****************/
-uint32_t it_runtime_total = 0;
-uint32_t it_runtime_cnt = 0, it_runtime_cnt_last = 0;
 
 typedef enum
 {
@@ -45,38 +40,12 @@ typedef enum
 static state 	_act_state = SYNC_SOS;
 static uint8_t 	_char_idx  = 0;
 
-
-void px4_gps_update(void)
-{
-	if (_module_state == DISABLE)
-	{
-		return;
-	}
-
-	uint32_t start = tic();
-
-	// parse just some chars during single call
-	while (!ring_buffer_empty(&_rb))
-	{
-		state_machine_process_new_byte(ring_buffer_pop(&_rb));
-	}
-
-	// first check if there are new data from gps sensor
-	if ((HAL_GetTick() - _time_rx_last_rmc_msg) > RECEIVE_TIMEOUT)
-	{
-		_rmc_storage.Valid = 0;
-	}
-
-	_runtimes_arr[1] = toc(start);
-}
-
 void px4_gps_init(uint32_t baud)
 {
 	_crc_idx = 0;
-	memset(&_rmc_storage, 0, sizeof(gps_rmc_packet_st));
-	memset(&_rb, 0, sizeof(ring_buffer));
+	memset(&_rmc_storage, 0, sizeof(_rmc_storage));
+	memset(&_rb, 0, sizeof(_rb));
 	memset(_parser_buff, 0, sizeof(_parser_buff));
-	memset(_runtimes_arr, 0, sizeof(_runtimes_arr));
 
 	gps_setup_uart(baud);
 
@@ -132,13 +101,13 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 		{
 			// new sentence starts
 			_char_idx = 0;
-			_parser_buff[_char_idx++] = rxChar;
+			_parser_buff[_storage_idx][_char_idx++] = rxChar;
 			_act_state = SYNC_HEADER;
 		}
 		break;
 
 	case SYNC_HEADER:
-		_parser_buff[_char_idx++] = rxChar;
+		_parser_buff[_storage_idx][_char_idx++] = rxChar;
 
 		if (rxChar == ',')
 		{
@@ -151,7 +120,7 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 		break;
 
 	case GET_DATA:
-		_parser_buff[_char_idx++] = rxChar;
+		_parser_buff[_storage_idx][_char_idx++] = rxChar;
 
 		// check if received end of nmea string
 		if (rxChar == '*')
@@ -162,9 +131,9 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 		break;
 
 	case CHK_SUM:
-		_parser_buff[_char_idx++] = rxChar;
-		_parser_buff[_char_idx] = 0; // terminate string
-		
+		_parser_buff[_storage_idx][_char_idx++] = rxChar;
+		_parser_buff[_storage_idx][_char_idx] = 0; // terminate string
+
 		if (_crc_idx == 0)
 		{
 			// high nibble
@@ -175,36 +144,35 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 			// low nibble
 			_recv_crc = (_recv_crc << 4) | ascii_2_nibble(rxChar);
 
-			// compare checksums, check if we received the sentence correctly
-			if (_recv_crc == calculate_nmea_crc(_parser_buff))
+			// compare checksums, so check if we received the sentence correctly
+			if (_recv_crc == calculate_nmea_crc(_parser_buff[_storage_idx]))
 			{
 				// update receive time stamp
-				_time_rx_last_rmc_msg = HAL_GetTick();
-				uint32_t start = tic();
-				parse_nmea_rmc_sentence(_parser_buff, &_rmc_storage);
-				_runtimes_arr[0] = toc(start);
+				_time_rx_last_rmc_msg = tic();
 
-				// TODO: use _char_idx for copy length
-				memcpy(_parser_buffer_last, _parser_buff, GPS_SENTENCE_BUFF_SIZE);
+				// parse the string to single data values
+				parse_nmea_rmc_sentence(_parser_buff[_storage_idx], &_rmc_storage[_storage_idx]);
 
-				// update interrupt runtime
-				// average interrupt runtime * interrupt call counter since last received rmc string
-				_runtimes_arr[3] = ((uint32_t) it_runtime_total / it_runtime_cnt) * (it_runtime_cnt - it_runtime_cnt_last);
-				it_runtime_cnt_last = it_runtime_cnt;
-				/*******************************************************/
-			}else
+				// switch the storage bank
+				_storage_idx = (_storage_idx + 1) % 2;
+
+			}
+			else
 			{
 				px4debug(eGPS, "rmc crc err \r\n");
 			}
 
+			// reset state machine
 			_act_state = SYNC_SOS;
 		}
 		else
 		{
 			_act_state = SYNC_SOS;
 		}
+
 		_crc_idx++;
 		break;
+
 	default:
 		break;
 	}
@@ -218,21 +186,41 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 }
 
 
+void px4_gps_update(void)
+{
+	if (_module_state == DISABLE)
+	{
+		return;
+	}
+
+	// parse just some chars during single call
+	while (!ring_buffer_empty(&_rb))
+	{
+		state_machine_process_new_byte(ring_buffer_pop(&_rb));
+	}
+
+	// first check if there are new data from gps sensor
+	if (toc(_time_rx_last_rmc_msg) > RECEIVE_TIMEOUT)
+	{
+		// mark dataset for reading as invalid => is too old
+		uint32_t id = (_storage_idx + 1) % 2;
+		_rmc_storage[id].Valid = 0;
+	}
+}
 
 void px4_gps_get(gps_rmc_packet_st * pData)
 {
-	memcpy(pData, &_rmc_storage, sizeof(gps_rmc_packet_st));
+	uint32_t id = (_storage_idx + 1) % 2;
+	memcpy(pData, &_rmc_storage[id], sizeof(gps_rmc_packet_st));
 }
 
 void px4_gps_get_raw(uint8_t * buff)
 {
-	memcpy(buff, _parser_buffer_last, GPS_SENTENCE_BUFF_SIZE);
+	memcpy(buff, _parser_buff[_storage_idx], GPS_SENTENCE_BUFF_SIZE);
 }
 
 void px4_gps_rx_complete_event()
 {
-	uint32_t start = tic();
-
 	// if there are enought free space in the ring buffer
 	// move to next position, otherwise overwrite last position.
 	// this is more secure, in worst case one sentence can get lost
@@ -245,17 +233,13 @@ void px4_gps_rx_complete_event()
 		px4debug(eGPS, "gps. not enought free space in ring buffer! \r\n");
 	}
 
-	// start receiving next part
+	// TODO check write limit on single operation (write pointer overflow)
+	// reload interrupt for receiving next chars
 	HAL_UART_Receive_IT(&GpsUart, &(_rb.buff[_rb.write]), GPS_RX_PACKAGE_LENGTH);
-
-	it_runtime_total += toc(start);
-	it_runtime_cnt++;
 }
 
 static uint8_t calculate_nmea_crc(uint8_t * buff)
 {
-	uint32_t start = tic();
-
 	uint8_t idx = 1; // skip first char: '$'
 	uint8_t ret = 0;
 
@@ -271,16 +255,13 @@ static uint8_t calculate_nmea_crc(uint8_t * buff)
 		}
 	} while (idx < GPS_SENTENCE_BUFF_SIZE);
 
-	_runtimes_arr[2] = toc(start);
-
 	return ret;
 }
-
 
 static inline uint8_t ring_buffer_pop(ring_buffer * b)
 {
 	uint8_t ret = b->buff[b->read++];
-	b->read = b->read % GPS_RING_BUFF_SIZE;
+	b->read = b->read % GPS_RING_BUFF_SIZE;	// avoid overflow
 	return ret;
 }
 
@@ -292,17 +273,5 @@ static inline uint32_t ring_buffer_empty(ring_buffer * b)
 // TODO see implementation ring_buffer_free_space in sd card
 static uint32_t ring_buffer_free_space(ring_buffer * b)
 {
-	if (b->read > b->write)
-	{
-		return b->read - b->write;
-	}
-	else
-	{
-		return (sizeof(b->buff)- b->write) + b->read - 1;
-	}
-}
-
-uint32_t * px4_gps_getruntimes(void)
-{
-	return _runtimes_arr;
+	return (GPS_RING_BUFF_SIZE + b->read - b->write - 1) % GPS_RING_BUFF_SIZE;
 }

@@ -34,7 +34,7 @@ void pxio_driver_init(void)
 
 		if (HAL_UART_Init(&PXIO_UART) != HAL_OK)
 		{
-			comm_itf_print_string("pxio drv HAL_UART_Init error! \r\n");
+			px4debug(eDRV, "pxio drv HAL_UART_Init error! \r\n");
 			error_handler(0);
 		}
 
@@ -62,7 +62,7 @@ void pxio_driver_init(void)
 		hdma_tx.Init.PeriphBurst 			= DMA_PBURST_INC4;
 		if (HAL_DMA_Init(&hdma_tx) != HAL_OK)
 		{
-			comm_itf_print_string("pxio drv HAL_DMA_Init tx error! \r\n");
+			px4debug(eDRV, "pxio drv HAL_DMA_Init tx error! \r\n");
 			error_handler(0);
 		}
 
@@ -84,7 +84,7 @@ void pxio_driver_init(void)
 
 		if (HAL_DMA_Init(&hdma_rx) != HAL_OK)
 		{
-			comm_itf_print_string("pxio drv HAL_DMA_Init rx error! \r\n");
+			px4debug(eDRV, "pxio drv HAL_DMA_Init rx error! \r\n");
 			error_handler(0);
 		}
 		__HAL_LINKDMA(&PXIO_UART, hdmarx, hdma_rx);
@@ -103,7 +103,7 @@ void pxio_driver_init(void)
 		HAL_NVIC_EnableIRQ(USART6_IRQn);
 		
 		module_state = ENABLE;
-		comm_itf_print_string("pxio_driver init ok\r\n");
+		px4debug(eDRV, "pxio_driver init ok\r\n");
 
 		uint16_t reg_val = 0;
 		int16_t ret, tries = 5;
@@ -124,11 +124,11 @@ void pxio_driver_init(void)
 
 		if (tries == 0)
 		{
-			comm_itf_print_string("no communication to pxio\r\n");
+			px4debug(eDRV, "no communication to pxio\r\n");
 		}
 		else
 		{
-			comm_itf_print_string("communication with pxio is established\r\n");
+			px4debug(eDRV, "communication with pxio is established\r\n");
 		}
 	}
 }
@@ -142,7 +142,7 @@ int32_t pxio_driver_reg_mod(uint8_t page, uint8_t offset, uint16_t clearbits, ui
 
 	if (ret != SUCCESS)
 	{
-		comm_itf_print_string("reg mod get err\r\n");
+		px4debug(eDRV, "reg mod get err\r\n");
 		return ret;
 	}
 	
@@ -153,7 +153,7 @@ int32_t pxio_driver_reg_mod(uint8_t page, uint8_t offset, uint16_t clearbits, ui
 
 	if (ret != SUCCESS)
 	{
-		comm_itf_print_string("reg mod set err\r\n");
+		px4debug(eDRV, "reg mod set err\r\n");
 		return ret;
 	}
 	return ret; 
@@ -170,7 +170,7 @@ int32_t pxio_driver_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsi
 
 	if (ret != (int) num_values)
 	{
-		comm_itf_print_string("reg get err\r\n");
+		px4debug(eDRV, "reg get err\r\n");
 		return ERROR;
 	}
 	return SUCCESS;
@@ -187,7 +187,7 @@ int32_t pxio_driver_reg_set(uint8_t page, uint8_t offset, uint16_t * values, uns
 
 	if (ret != (int)num_values) 
 	{
-		comm_itf_print_string("reg set err\r\n");
+		px4debug(eDRV, "reg set err\r\n");
 		return ERROR;
 	}
 	return SUCCESS;
@@ -225,7 +225,7 @@ int32_t write(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 		}
 		else
 		{
-			comm_itf_print_string("wrt pck err\r\n");
+			px4debug(eDRV, "wrt pck err\r\n");
 			result = ERROR;
 		}
 	}
@@ -257,12 +257,12 @@ int32_t read(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 	{
 		if (PKT_CODE(dmaRxBuffer) == PKT_CODE_ERROR)
 		{
-			comm_itf_print_string("pck code err\r\n");
+			px4debug(eDRV, "pck code err\r\n");
 			result = ERROR;
 		}
 		else if (PKT_COUNT(dmaRxBuffer) != count) /* compare register counts */
 		{
-			comm_itf_print_string("recv cnt err\r\n");
+			px4debug(eDRV, "recv cnt err\r\n");
 			result = ERROR;
 		}
 		else // read was successful
@@ -283,20 +283,19 @@ int32_t com_complete()
 	dmaBuffer.crc = 0;
 	dmaBuffer.crc = crc_packet(&dmaBuffer);
 
-	
 	memset(&dmaRxBuffer, 0xFF, sizeof(dmaRxBuffer));
 
-	// start rx dma
+	// load rx dma interrupt
 	if (HAL_UART_Receive_DMA(&PXIO_UART, (uint8_t*) &dmaRxBuffer, sizeof(dmaRxBuffer)) != HAL_OK)
 	{
-		comm_itf_print_string("setup rx dma err\r\n");
+		px4debug(eDRV, "setup rx dma err\r\n");
 		error_handler(0);
 	}
 
-	// start tx dma
+	// load tx dma and fires
 	if (HAL_UART_Transmit_DMA(&PXIO_UART, (uint8_t*) &dmaBuffer, PKT_SIZE(dmaBuffer)) != HAL_OK)
 	{
-		comm_itf_print_string("setup tx dma err\r\n");
+		px4debug(eDRV, "setup tx dma err\r\n");
 		error_handler(0);
 	}
 
@@ -306,7 +305,7 @@ int32_t com_complete()
 	//
 	//	if (timer >= DMA_TXRX_TIMEOUT)
 	//	{
-	//		comm_itf_print_string("dma timeout on start \r\n");
+	//		px4debug(eDRV, "dma timeout on start \r\n");
 	//	}
 	//
 	//	// wait until rx transaction is over
@@ -322,26 +321,26 @@ int32_t com_complete()
 	
 	uint8_t packet_code;
 	
-	// packed code is first byte we get received
+	// packed code is first byte we get received, so check cyclic the init values in packet code were overwritten
 	do
 	{
 		packet_code = PKT_CODE(dmaRxBuffer);
 		timer = toc(start);
 	} while ((packet_code == (PKT_CODE_MASK & 0xFF)) && (timer < DMA_TXRX_TIMEOUT));
 
-	// we received the packed code, rx transaction already runs
+	// we received the packed code, so rx transaction already runs
 	// wait until rx transaction is over by checking IDLE flag
 	while (!__HAL_UART_GET_FLAG(&PXIO_UART, UART_FLAG_IDLE) && (timer < DMA_TXRX_TIMEOUT))
 	{
 		timer = toc(start);
 	}
 
-	// rx transaction is over, check that we received package correct
+	// rx transaction is over, check that we received package correct, by checking crc
 	uint8_t crc = dmaRxBuffer.crc;
 	dmaRxBuffer.crc = 0;
 	if ((crc != crc_packet(&dmaRxBuffer)) | (PKT_CODE(dmaRxBuffer) == PKT_CODE_CORRUPT))
 	{
-		comm_itf_print_string("dma crc err\r\n");
+		px4debug(eDRV, "dma crc err\r\n");
 		result = ERROR;
 	}
 

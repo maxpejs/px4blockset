@@ -20,7 +20,6 @@ uint32_t ring_buffer_count(ring_buff_data_st * b)
 	return (RING_BUFF_SIZE + b->write - b->read ) % RING_BUFF_SIZE;
 }
 
-
 uint32_t ring_buffer_add(ring_buff_data_st * b)
 {
 	return (RING_BUFF_SIZE + b->write - b->read ) % RING_BUFF_SIZE;

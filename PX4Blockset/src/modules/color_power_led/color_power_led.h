@@ -60,13 +60,17 @@ void px4_color_power_led_init();
 
 /**
  *	Stores internal the given color channel values. The values will be calculated
- *	to pwm impuses by formula impulse = value * (16/256).
+ *	to pwm impulses by formula IMPULSE = VALUE * (16/256).
  *	Values below 16 are not applicable.
+ *
+ *	@param r,b,g	red, green, blue component of 8-Bit color
  */
 void px4_color_power_led_set(uint32_t r, uint32_t g, uint32_t b);
 
 /**
  *	Task for triggering the I2C-command to sets rgb led to internal stored channel values.
+ *
+ *	@param	pointer to argument vector
  */
 void px4_color_power_led_task_funtion(void const * argv);
 

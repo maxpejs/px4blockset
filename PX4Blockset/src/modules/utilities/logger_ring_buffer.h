@@ -39,13 +39,13 @@ typedef struct
 {
 	uint32_t timestamp;
 	float val[SIGNAL_MAX_CNT];
-}data_st;
+}log_dataset_st;
 
 typedef struct
 {
-	uint32_t read;
-	uint32_t write;
-	data_st buff[RING_BUFF_SIZE];
+	uint32_t 		read;
+	uint32_t 		write;
+	log_dataset_st 	buff[RING_BUFF_SIZE];
 }ring_buff_data_st;
 
 /**

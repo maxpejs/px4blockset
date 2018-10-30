@@ -1,23 +1,23 @@
 #include "ms5611.h"
 
 static uint32_t _module_state = DISABLE;
-static uint32_t _converting_switch = DISABLE;
-static uint32_t _ms5611_runtime = 0U;
+static uint32_t _convert_D1 = DISABLE;
 static uint32_t _D1 = 0U;
 static uint32_t _D2 = 0U;
 static uint32_t _converting_start = 0U;
 
 static uint16_t _C[7];
 
-static ms5611_data_st _ms5611_data_storage;
+static ms5611_data_st _ms5611_data_storage[2];
+static uint32_t storageIdx = 0;
 
 void _send_cmd(uint8_t cmd);
 void _calc_values();
 uint32_t _get_meas_value();
 
-void px4_ms5611_update()
+void px4_ms5611_update(void const * argv)
 {
-	uint32_t start = tic();
+	UNUSED(argv);
 
 	if (_module_state == DISABLE)
 	{
@@ -33,12 +33,12 @@ void px4_ms5611_update()
 	// set spi speed (~20MHZ)
 	px4_spi_drv_set_clock_speed(PX4_SPI1, SPI_DRV_PRESCALER_4);
 	
-	if (_converting_switch == ENABLE) //	D1 conversion is over => switch
+	if (_convert_D1 == ENABLE) //	D1 conversion is over => switch
 	{
 		_D1 = _get_meas_value();
 		if (_D1 != 0)
 		{
-			_converting_switch = DISABLE;
+			_convert_D1 = DISABLE;
 		}
 	}
 	else	// D2 conversion is over => switch
@@ -46,13 +46,13 @@ void px4_ms5611_update()
 		_D2 = _get_meas_value();
 		if (_D2 != 0)
 		{
-			_converting_switch = ENABLE;
+			_convert_D1 = ENABLE;
 		}
 	}
 
 	_converting_start = tic();
 
-	if (_converting_switch)
+	if (_convert_D1)
 	{
 		_send_cmd(REG_MS5611_D1_OSR_4096);
 	}
@@ -64,9 +64,9 @@ void px4_ms5611_update()
 	if (_D1 != 0 && _D2 != 0)
 	{
 		_calc_values();
+		_D1 = 0;
+		_D2 = 0;
 	}
-
-	_ms5611_runtime = toc(start);
 }
 
 void _calc_values()
@@ -81,13 +81,19 @@ void _calc_values()
 	SENS = ((uint64_t)_C[1] <<15) + (((int64_t)_C[3] * dT) >> 8);
 	P = (((_D1 * SENS) >> 21) - OFF) >> 15;
 
-	_ms5611_data_storage.temp = (float)TEMP / 100.0f;
-	_ms5611_data_storage.baroValue = (float)P / 100.0f;
+	uint32_t idx = (storageIdx + 1)%2;
+
+	_ms5611_data_storage[idx].temp = (float)TEMP / 100.0f;
+	_ms5611_data_storage[idx].baroValue = (float)P / 100.0f;
+	_ms5611_data_storage[idx].isNew = 1;
+
+	storageIdx = idx; // switch storage banks
 }
 
 void px4_ms5611_get(ms5611_data_st * data)
 {
-	memcpy(data, &_ms5611_data_storage, sizeof(ms5611_data_st));
+	memcpy(data, &_ms5611_data_storage[storageIdx], sizeof(ms5611_data_st));
+	_ms5611_data_storage[storageIdx].isNew = 0;
 }
 
 void _send_cmd(uint8_t cmd)
@@ -162,9 +168,3 @@ void px4_ms5611_init()
 	_module_state = ENABLE;
 	px4debug(eMS5611, "ms5611 init ok \r\n");
 }
-
-uint32_t px4_ms5611_get_runtime()
-{
-	return _ms5611_runtime;
-}
-

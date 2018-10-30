@@ -153,14 +153,9 @@ void px4_mpu6000_init(mpu6000_settings_st * in_settings);
 void px4_mpu6000_get(mpu6000_data_st * data);
 
 /**
- * TODO
+ * 	Function for reading the new values from mpu6000 sensor over spi
  */
-void px4_mpu6000_task_function();
+void px4_mpu6000_update(void const * argv);
 
-/**
-*	Returns current runtime of txrx spi command for receiving acc + gyro values 
-*	from mpu chip and calculating from raw values to physical values 
-*/
-uint32_t px4_mpu6000_get_runtime(void);
 
 #endif // MPU6000_H

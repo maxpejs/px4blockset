@@ -34,10 +34,10 @@
 #ifndef MS5611_H
 #define MS5611_H 
 
-#include <spi_drv.h>
+#include <comm_itf.h>
 #include <defines.h>
 #include <inttypes.h>
-#include <comm_itf.h>
+#include <spi_drv.h>
 #include <error_handler.h>
 #include <timestamp.h>
 
@@ -76,8 +76,9 @@
 */
 typedef struct
 {
-	float baroValue;	// pressure (mbar)
-	float temp;			// temperature (celcius)
+	float 		baroValue;		// pressure (mbar)
+	float 		temp;			// temperature (celcius)
+	uint32_t	isNew;			// flag shows if data set contains new values
 }ms5611_data_st;
 
 /**
@@ -93,12 +94,6 @@ void px4_ms5611_get(ms5611_data_st * data);
 /**
  * TODO
  */
-void px4_ms5611_update(void);
-
-/**
-*	Returns current runtime of spi command (request + response) for receiving baro values (pres + temp)
-*	from ms5611 chip and calculating raw values to physical values
-*/
-uint32_t px4_ms5611_get_runtime(void);
+void px4_ms5611_update(void const * argv);
 
 #endif // MS5611_H

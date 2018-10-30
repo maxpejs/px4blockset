@@ -10,7 +10,6 @@ static uint32_t _sig_cnt 		= 0U;
 static uint32_t _sample_time_us	= 0U;
 static uint32_t _log_enabled 	= 0U;
 static uint64_t _tick_last_call = 0U;
-static uint32_t _runtime		= 0U;
 static uint32_t _sample_cnt		= 0U;
 
 static uint32_t  _module_state 	= DISABLE;
@@ -68,8 +67,6 @@ void px4_signal_output_set(float * values)
 
 void px4_signal_output_task(void)
 {
-	uint64_t timestampt = tic();
-
 	if (_module_state == DISABLE || ring_buffer_empty(&rbuff))
 	{
 		return;
@@ -90,8 +87,6 @@ void px4_signal_output_task(void)
 		rbuff.read++;
 		rbuff.read %= RING_BUFF_SIZE;
 	}
-
-	_runtime = (uint32_t) toc(timestampt);
 }
 
 void px4_signal_output_set_log(uint8_t state)
@@ -105,12 +100,4 @@ void px4_signal_output_set_log(uint8_t state)
 		_log_enabled = state;
 	}
 }
-
-uint32_t px4_signal_output_getruntime(void)
-{
-	return _runtime;
-}
-
-
-
 
