@@ -94,6 +94,6 @@ void px4_ms5611_get(ms5611_data_st * data);
 /**
  * TODO
  */
-void px4_ms5611_update(void const * argv);
+void px4_ms5611_update();
 
 #endif // MS5611_H

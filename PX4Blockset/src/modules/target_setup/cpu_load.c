@@ -4,7 +4,7 @@
 static uint32_t _cpu_load_max = 0;
 static uint32_t _cpu_load_act = 0;
 
-void cpu_load_update(void const * argv)
+void cpu_load_update()
 {
 	static uint32_t last_summ_RunTimeCounter = 0;
 	static uint32_t last_total = 0;

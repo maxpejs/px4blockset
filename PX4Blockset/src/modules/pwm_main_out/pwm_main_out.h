@@ -81,7 +81,7 @@ void px4_pwm_main_out_set(pwm_main_out_data_st * data);
 /**
 *	Set pins to given pwm rates
 */
-void px4_pwm_main_out_task_function(void const * argv);
+void px4_pwm_main_out_update();
 
 
 #endif // PWM_MAIN_OUT_H

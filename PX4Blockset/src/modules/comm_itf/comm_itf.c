@@ -150,7 +150,7 @@ static void check_rx_buff()
 	}
 }
 
-void comm_itf_task_function(void const * argv)
+void comm_itf_task_function(void)
 {
 	if (_moule_state == DISABLE)
 	{
@@ -172,13 +172,11 @@ void comm_itf_task_function(void const * argv)
 
 	// ===============================================
 	// check logging queues from other tasks
-	px4_task * task = (px4_task*) argv;
-
 	QueueHandle_t nextQueueWithData = NULL;
 
 	do
 	{
-		nextQueueWithData = (QueueHandle_t) xQueueSelectFromSet(task->queueSet, 0);
+		nextQueueWithData = (QueueHandle_t) xQueueSelectFromSet(px4_tasks_get_queueset(), 0);
 		if (nextQueueWithData != NULL)
 		{
 			char *queueRecvString = NULL;
@@ -479,7 +477,7 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 			}
 			else
 			{
-				comm_itf_print_string("Couldn't sent queue message \r\n");
+				// comm_itf_print_string("Couldn't sent queue message \r\n");
 			}
 		}
 	}

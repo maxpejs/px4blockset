@@ -1,5 +1,5 @@
 function create_delivery()
-revision = '1.1';   % umstieg von svn-Revision auf x.x Versionvergabe (10.04.2018)
+revision = '2.0.0';   % umstieg von svn-Revision auf x.x Versionvergabe (10.04.2018)
 
 c = tic;
 clc;

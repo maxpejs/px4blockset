@@ -6,21 +6,20 @@ static FunctionalState			_module_init 			= DISABLE;
 
 void px4_rc_ppm_input_get(rc_ppm_input_data_st * data)
 {
-	memcpy(data, &rc_in_data_storage, sizeof(rc_in_data_storage));
+	memcpy(data, &rc_in_data_storage[_idxsection], sizeof(rc_ppm_input_data_st));
 }
 
 void px4_rc_ppm_input_init(void)
 {
+	px4debug(ePPM_INPUT, "rc_ppm_input init ...\r\n");
 	memset(&rc_in_data_storage, 0, sizeof(rc_in_data_storage));
 	pxio_driver_init();
 	_module_init = ENABLE;
 	px4debug(ePPM_INPUT, "rc_ppm_input init ok\r\n");
 }
 
-void px4_rc_ppm_input_update(void const * argv)
+void px4_rc_ppm_input_update()
 {
-	UNUSED(argv);
-
 	if (_module_init == DISABLE)
 	{
 		return;

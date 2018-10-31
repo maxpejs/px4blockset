@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.18"
+    ComputedModelVersion    "1.20"
     NumModelReferences	    0
     NumTestPointedSignals   0
     NumProvidedFunctions    0
@@ -41,7 +41,7 @@ Model {
       $ObjectID		      2
       $ClassName	      "Simulink.WindowInfo"
       IsActive		      [1]
-      Location		      [87.0, 52.0, 942.0, 637.0]
+      Location		      [87.0, 52.0, 1304.0, 853.0]
       Object {
 	$PropName		"ModelBrowserInfo"
 	$ObjectID		3
@@ -50,7 +50,7 @@ Model {
 	DockPosition		"Left"
 	Width			[50]
 	Height			[50]
-	Filter			[8]
+	Filter			[9]
       }
       Object {
 	$PropName		"ExplorerBarInfo"
@@ -65,7 +65,7 @@ Model {
 	IsActive		[1]
 	ViewObjType		"SimulinkTopLevel"
 	LoadSaveID		"0"
-	Extents			[892.0, 458.0]
+	Extents			[1254.0, 674.0]
 	ZoomFactor		[1.0]
 	Offset			[0.0, 0.0]
       }
@@ -87,7 +87,7 @@ Model {
       "AAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0Ac"
       "ABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAABfAP///wAAAAEAAAAAAAAAAPwCA"
       "AAAAfsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZ"
-      "QBjAHQAbwByAAAAAAD/////AAAAJwD///8AAAOeAAACAAAAAAEAAAACAAAAAQAAAAL8AAAAAQAAAAIAAAAP/////wAAAAAA/////wAAAAAAAAAA/"
+      "QBjAHQAbwByAAAAAAD/////AAAAJwD///8AAAUIAAAC2AAAAAEAAAACAAAAAQAAAAL8AAAAAQAAAAIAAAAP/////wAAAAAA/////wAAAAAAAAAA/"
       "////wEAAAAA/////wAAAAAAAAAA/////wAAAAAA/////wAAAAAAAAAA/////wAAAAAA/////wAAAAAAAAAA/////wAAAAAA/////wAAAAAAAAAA/"
       "////wEAAAB5/////wAAAAAAAAAA/////wEAAADa/////wAAAAAAAAAA/////wAAAAAA/////wAAAAAAAAAA/////wEAAAFT/////wAAAAAAAAAA/"
       "////wAAAAAA/////wAAAAAAAAAA/////wAAAAAA/////wAAAAAAAAAA/////wAAAAAA/////wAAAAAAAAAA/////wEAAAMr/////wAAAAAAAAAA/"
@@ -100,9 +100,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Privat"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Tue Feb 13 19:52:53 2018"
-  RTWModifiedTimeStamp	  440452372
-  ModelVersionFormat	  "1.%<AutoIncrement:18>"
+  LastModifiedDate	  "Wed Oct 31 23:11:00 2018"
+  RTWModifiedTimeStamp	  462928259
+  ModelVersionFormat	  "1.%<AutoIncrement:20>"
   ConfigurationManager	  "none"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -404,7 +404,7 @@ Model {
 	  SimStateInterfaceChecksumMismatchMsg "warning"
 	  SimStateOlderReleaseMsg "error"
 	  InitInArrayFormatMsg	  "warning"
-	  StrictBusMsg		  "Warning"
+	  StrictBusMsg		  "ErrorLevel1"
 	  BusNameAdapt		  "WarnAndRepair"
 	  NonBusSignalsTreatedAsBus "none"
 	  SymbolicDimMinMaxWarning "warning"
@@ -907,7 +907,7 @@ Model {
 	PropName		"Components"
       }
       Name		      "Configuration"
-      ExtraOptions	      "-aGenerateTraceInfo=0 "
+      ExtraOptions	      "-aIgnoreTestpoints=0 "
       CurrentDlgPage	      "Solver"
       ConfigPrmDlgPosition     [ 500, 220, 1420, 860 ] 
     }
@@ -995,7 +995,7 @@ Model {
   }
   System {
     Name		    "test_pwm_main_out_01"
-    Location		    [87, 52, 1029, 689]
+    Location		    [87, 52, 1391, 905]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -1098,7 +1098,7 @@ Model {
       Ports		      [10]
       Position		      [620, 176, 895, 429]
       ZOrder		      -11
-      LibraryVersion	      "1.103"
+      LibraryVersion	      "1.104"
       SourceBlock	      "px4_ap1_pwm_main_out_lib/pwm_main_out"
       SourceType	      "PX4_PWM_MAIN_OUT"
       main1		      on
@@ -1122,12 +1122,12 @@ Model {
       Ports		      []
       Position		      [375, 30, 560, 130]
       ZOrder		      -12
-      LibraryVersion	      "1.85"
+      LibraryVersion	      "1.86"
       SourceBlock	      "px4_ap1_px4setup_lib/px4 setup"
       SourceType	      "PX4_Target_Setup"
       SampleTimeValue	      "0.01"
       cbBuild		      on
-      cbUpload		      off
+      cbUpload		      on
       cbPort		      "COM3"
       cpuLoad		      off
       debugmode		      on

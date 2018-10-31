@@ -289,14 +289,12 @@ int32_t com_complete()
 	if (HAL_UART_Receive_DMA(&PXIO_UART, (uint8_t*) &dmaRxBuffer, sizeof(dmaRxBuffer)) != HAL_OK)
 	{
 		px4debug(eDRV, "setup rx dma err\r\n");
-		error_handler(0);
 	}
 
 	// load tx dma and fires
 	if (HAL_UART_Transmit_DMA(&PXIO_UART, (uint8_t*) &dmaBuffer, PKT_SIZE(dmaBuffer)) != HAL_OK)
 	{
 		px4debug(eDRV, "setup tx dma err\r\n");
-		error_handler(0);
 	}
 
 	//	// wait until rx transaction starts

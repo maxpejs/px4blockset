@@ -10,7 +10,7 @@
     %<LibSetSourceFileCustomSection(file, "customIncludes", tmpBuf)>
    
     %openfile tmpBuf
-    /* Main program */
+    /* Entry Point */
     int main(void)
     {
 		// init board 
@@ -31,10 +31,13 @@
 		px4_tasks_initialize();
 		
 		// register simulink model task
-		px4_tasks_register_task(eAPPL, "appl", %<LibGetModelName()>_step, PX4_APP_TASK_TIME, 0, ePrioNormal);
+		px4_tasks_register_task(eAPPL, "appl", %<LibGetModelName()>_step, PX4_APP_TASK_TIME, 0, ePrioHigh);
 		
-		// communication task
-		px4_tasks_register_task(eCOMMITF, "comm_itf", comm_itf_process_tick, 500, 3000, ePrioNormal);
+		// register communication task
+		px4_tasks_register_task(eCOMMITF, "comm_itf", comm_itf_task_function, 10, 3000, ePrioNormal);
+		
+		// register cpu_load calculation task
+		px4_tasks_register_task(eCPU_LOAD, "cpu_load", 	cpu_load_update, 500, 0, ePrioNormal);
 		
 		// Initialize model
         %<LibCallModelInitialize()>

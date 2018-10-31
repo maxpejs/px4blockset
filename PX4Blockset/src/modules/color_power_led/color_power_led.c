@@ -26,10 +26,8 @@ void px4_color_power_led_init()
 }
 
 
-void px4_color_power_led_task_funtion(void const * argv)
+void px4_color_power_led_update()
 {
-	UNUSED(argv);
-
 	if (_module_state == DISABLE)
 	{
 		// nothing to do

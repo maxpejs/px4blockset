@@ -49,7 +49,7 @@ CP = cp -f
 endif
 
 # Compiler flags
-CFLAGS = $(patsubst %, -I%, .) -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -std=c11 -Wall -Werror -Wextra -Wno-unused-parameter -std=c11 -Ofast -fstack-usage -Wstack-usage=2048
+CFLAGS = $(patsubst %, -I%, .) -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -std=c11 -Wall -Werror -Wextra -Wno-unused-parameter -std=c11 -Ofast -O2
 
 # board specific defines
 CFLAGS += -DHSE_VALUE=24000000
@@ -58,7 +58,7 @@ CFLAGS += -DSTM32F427xx
 # enable HAL driver
 CFLAGS += -DUSE_HAL_DRIVER
 
-# enable FatFs Config # TODO: remove after adapting
+# enable FatFs Config
 CFLAGS += -DUSE_STM324xG_EVAL
 
 

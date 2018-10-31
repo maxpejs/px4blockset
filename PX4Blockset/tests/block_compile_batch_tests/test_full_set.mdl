@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.156"
+    ComputedModelVersion    "1.157"
     NumModelReferences	    0
     NumTestPointedSignals   0
     NumProvidedFunctions    0
@@ -66,8 +66,8 @@ Model {
 	ViewObjType		"SimulinkTopLevel"
 	LoadSaveID		"0"
 	Extents			[1886.0, 877.0]
-	ZoomFactor		[1.5]
-	Offset			[1318.5028704700394, 362.78669012062863]
+	ZoomFactor		[0.77740585774058579]
+	Offset			[46.991388589881581, 5.9445640473627464]
       }
       Object {
 	$PropName		"DockComponentsInfo"
@@ -100,9 +100,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Privat"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Fri Apr 13 23:19:49 2018"
-  RTWModifiedTimeStamp	  445562383
-  ModelVersionFormat	  "1.%<AutoIncrement:156>"
+  LastModifiedDate	  "Wed Oct 31 22:57:25 2018"
+  RTWModifiedTimeStamp	  462926334
+  ModelVersionFormat	  "1.%<AutoIncrement:157>"
   ConfigurationManager	  "none"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -907,7 +907,7 @@ Model {
 	PropName		"Components"
       }
       Name		      "Configuration"
-      ExtraOptions	      "-aGenerateTraceInfo=0 "
+      ExtraOptions	      "-aIgnoreTestpoints=0 "
       CurrentDlgPage	      "Solver"
       ConfigPrmDlgPosition     [ 500, 220, 1420, 860 ] 
     }
@@ -1112,7 +1112,7 @@ Model {
     TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
     TiledPageScale	    1
     ShowPageBoundaries	    off
-    ZoomFactor		    "150"
+    ZoomFactor		    "78"
     ReportName		    "simulink-default.rpt"
     SIDHighWatermark	    "27"
     Block {
@@ -1130,7 +1130,7 @@ Model {
       Variant		      off
       System {
 	Name			"Chart"
-	Location		[227, 345, 838, 789]
+	Location		[-8, -8, 1928, 1048]
 	Open			off
 	ModelBrowserVisibility	off
 	ModelBrowserWidth	200
@@ -1547,7 +1547,7 @@ Model {
       SourceType	      "PX4_Target_Setup"
       SampleTimeValue	      "0.01"
       cbBuild		      on
-      cbUpload		      off
+      cbUpload		      on
       cbPort		      "COM3"
       cpuLoad		      on
       debugmode		      on
@@ -1616,7 +1616,7 @@ Model {
       Ports		      [2]
       Position		      [2315, 433, 2455, 557]
       ZOrder		      3
-      LibraryVersion	      "1.139"
+      LibraryVersion	      "1.140"
       SourceBlock	      "px4_ap1_sdcard_logger_lib/px4_sdcard"
       SourceType	      "PX4_SDCARD"
       sampleTime	      "0.5"
@@ -1953,8 +1953,8 @@ Stateflow {
     id			    2
     machine		    1
     name		    "Chart"
-    windowPosition	    [129 162 1344 882]
-    viewLimits		    [97.496 562.162 18.627 262.973]
+    windowPosition	    [-8 -8 1936 1056]
+    viewLimits		    [97.496 568.43 18.627 330.518]
     zoomFactor		    0.459
     screen		    [1 1 1920 1080 1.611111111111111]
     viewObj		    2

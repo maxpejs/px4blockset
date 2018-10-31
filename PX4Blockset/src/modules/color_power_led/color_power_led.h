@@ -72,6 +72,6 @@ void px4_color_power_led_set(uint32_t r, uint32_t g, uint32_t b);
  *
  *	@param	pointer to argument vector
  */
-void px4_color_power_led_task_funtion(void const * argv);
+void px4_color_power_led_update();
 
 #endif // COLOR_POWER_LED_H

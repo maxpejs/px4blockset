@@ -59,11 +59,12 @@
 /* regular functions for printing any pixhawk sensor informations like calibration info */
 void comm_itf_init();
 void comm_itf_rx_complete_event(void);
-void comm_itf_task_function(void const * argv);
+void comm_itf_task_function();
 
 void px4debug(eTaskID id, char * MESSAGE, ...);
 
 /* print functions */
 void comm_itf_print_string(const char * str);
+
 
 #endif // COMM_ITF_H

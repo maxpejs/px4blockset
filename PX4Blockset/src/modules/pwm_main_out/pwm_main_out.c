@@ -73,6 +73,7 @@ static void set_safety_off_state(uint8_t ena)
 
 void px4_pwm_main_out_init(pwm_main_out_settings_st * settings)
 {
+	px4debug(taskID,"pwm_main_out init ...\r\n");
 	memset(&_pwm_output_data, 0, sizeof(_pwm_output_data));
 	pxio_driver_init();
 
@@ -117,7 +118,7 @@ void px4_pwm_main_out_set(pwm_main_out_data_st * new_data)
 	memcpy(&_pwm_output_data[_idxsection], new_data, sizeof(pwm_main_out_data_st));
 }
 
-void px4_pwm_main_out_task_function(void const * argv)
+void px4_pwm_main_out_update()
 {
 	uint32_t start = tic();
 

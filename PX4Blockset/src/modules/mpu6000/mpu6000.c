@@ -37,7 +37,7 @@ void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 	px4debug(eMPU6000, "mpu6000 init ok");
 }
 
-void px4_mpu6000_update(void const * argv)
+void px4_mpu6000_update()
 {
 	uint32_t start = tic();
 

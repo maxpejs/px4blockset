@@ -63,7 +63,7 @@ void px4_rc_ppm_input_get(rc_ppm_input_data_st * data);
 /**
  * TODO
  */
-void px4_rc_ppm_input_update(void const * argv);
+void px4_rc_ppm_input_update();
 
 
 #endif // RC_PPM_INPUT_H

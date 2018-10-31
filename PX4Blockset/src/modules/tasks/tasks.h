@@ -12,7 +12,7 @@
 /**
 *
 */
-typedef void (* callback_t)(void const * argv);
+typedef void (* callback_t)();
 
 typedef enum
 {
@@ -78,5 +78,8 @@ void px4_tasks_run();
 void px4_tasks_register_task(eTaskID id, const char * name, callback_t func, uint32_t sampleTime, uint32_t stacksize, uint32_t taskPrio);
 
 QueueHandle_t getQueueHandleByEnum(eTaskID id);
+
+QueueSetHandle_t px4_tasks_get_queueset(void);
+
 
 #endif // TASKS_H

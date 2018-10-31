@@ -15,10 +15,8 @@ void _send_cmd(uint8_t cmd);
 void _calc_values();
 uint32_t _get_meas_value();
 
-void px4_ms5611_update(void const * argv)
+void px4_ms5611_update()
 {
-	UNUSED(argv);
-
 	if (_module_state == DISABLE)
 	{
 		return;

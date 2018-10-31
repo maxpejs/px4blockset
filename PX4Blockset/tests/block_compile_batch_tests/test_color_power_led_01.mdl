@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.151"
+    ComputedModelVersion    "1.160"
     NumModelReferences	    0
     NumTestPointedSignals   0
     NumProvidedFunctions    0
@@ -41,7 +41,7 @@ Model {
       $ObjectID		      2
       $ClassName	      "Simulink.WindowInfo"
       IsActive		      [1]
-      Location		      [568.0, 154.0, 1130.0, 774.0]
+      Location		      [562.0, 127.0, 1130.0, 774.0]
       Object {
 	$PropName		"ModelBrowserInfo"
 	$ObjectID		3
@@ -63,10 +63,10 @@ Model {
 	$ObjectID		5
 	$ClassName		"Simulink.EditorInfo"
 	IsActive		[1]
-	ViewObjType		"StateflowChart"
-	LoadSaveID		"1"
+	ViewObjType		"SimulinkTopLevel"
+	LoadSaveID		"0"
 	Extents			[1080.0, 595.0]
-	ZoomFactor		[1.3689253935660508]
+	ZoomFactor		[1.25]
 	Offset			[0.0, 0.0]
       }
       Object {
@@ -100,9 +100,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Privat"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Wed Sep 19 22:24:02 2018"
-  RTWModifiedTimeStamp	  459295985
-  ModelVersionFormat	  "1.%<AutoIncrement:151>"
+  LastModifiedDate	  "Wed Oct 31 22:37:52 2018"
+  RTWModifiedTimeStamp	  462926270
+  ModelVersionFormat	  "1.%<AutoIncrement:160>"
   ConfigurationManager	  "none"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -908,8 +908,8 @@ Model {
       }
       Name		      "Configuration"
       ExtraOptions	      "-aIgnoreTestpoints=0 "
-      CurrentDlgPage	      "Hardware Implementation"
-      ConfigPrmDlgPosition     [ 500, 220, 1420, 860 ] 
+      CurrentDlgPage	      "Diagnostics/Connectivity"
+      ConfigPrmDlgPosition     [ 294, 78, 1420, 860 ] 
     }
     PropName		    "ConfigurationSets"
   }
@@ -1051,8 +1051,8 @@ Model {
   }
   System {
     Name		    "test_color_power_led_01"
-    Location		    [568, 154, 1698, 928]
-    Open		    off
+    Location		    [562, 127, 1692, 901]
+    Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
     ScreenColor		    "white"
@@ -1081,8 +1081,8 @@ Model {
       Variant		      off
       System {
 	Name			"Chart"
-	Location		[568, 154, 1698, 928]
-	Open			on
+	Location		[562, 127, 1692, 901]
+	Open			off
 	ModelBrowserVisibility	off
 	ModelBrowserWidth	200
 	ScreenColor		"white"
@@ -1250,7 +1250,7 @@ Model {
       SourceType	      "PX4_Target_Setup"
       SampleTimeValue	      "0.002"
       cbBuild		      on
-      cbUpload		      on
+      cbUpload		      off
       cbPort		      "COM3"
       cpuLoad		      off
       debugmode		      on
@@ -1296,13 +1296,12 @@ Stateflow {
     id			    2
     machine		    1
     name		    "Chart"
-    windowPosition	    [357 90 1224 808]
-    viewLimits		    [0 911.664 0 607.776]
+    windowPosition	    [568 154 1130 774]
+    viewLimits		    [0 842.997 0 582.939]
     zoomFactor		    0.974
     screen		    [1 1 1920 1080 1.611111111111111]
     treeNode		    [0 3 0 0]
     viewObj		    2
-    visible		    1
     subviewS {
       zoomFactor	      0.974
     }

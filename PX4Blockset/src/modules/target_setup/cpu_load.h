@@ -37,7 +37,7 @@
 /**
 *	TODO
 */
-void cpu_load_update(void const * argv);
+void cpu_load_update();
 
 /**
 *	TODO

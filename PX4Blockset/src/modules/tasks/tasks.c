@@ -11,6 +11,11 @@ SemaphoreHandle_t _spiMutex, _pxioMutex;
 
 static QueueSetHandle_t commQueueSet = NULL;
 
+QueueSetHandle_t px4_tasks_get_queueset(void)
+{
+	return commQueueSet;
+}
+
 QueueHandle_t getQueueHandleByEnum(eTaskID id)
 {
 	return _tasklist[id].msgQueue;
@@ -105,7 +110,7 @@ void Common_Task(void const * argv)
 		{
 			if (task->taskFunction != NULL)
 			{
-				task->taskFunction(argv); // execute task function
+				task->taskFunction(); // execute task function
 			}
 			if (mutex_exist)
 			{

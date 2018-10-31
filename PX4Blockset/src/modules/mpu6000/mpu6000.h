@@ -155,7 +155,7 @@ void px4_mpu6000_get(mpu6000_data_st * data);
 /**
  * 	Function for reading the new values from mpu6000 sensor over spi
  */
-void px4_mpu6000_update(void const * argv);
+void px4_mpu6000_update();
 
 
 #endif // MPU6000_H
