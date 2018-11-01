@@ -45,8 +45,6 @@
 #define PWM_AUX_OUT_IMPULSE_MIN		90
 #define PWM_AUX_OUT_IMPULSE_MAX		2500
 
-
-
 /**
  * Initializes the ports and timers for aux pwms of pixhawk. There are two group of aux pwm ports:
  * 1st Group: ports 1-4
@@ -65,11 +63,11 @@ void px4_pwm_aux_out_init(uint16_t * pwm_freqs);
  * Parameter: 
  * impulse_values:	Array with six(!) elements, contains pwm impulse values in µs.
  */
-void px4_pwm_aux_out_write_impulse(uint16_t * impulse_values);
+void px4_pwm_aux_out_set(uint16_t * impulse_values);
 
 /**
-*	Returns current runtime of setting registers
+*	Provides pwm impulses stored by "px4_pwm_aux_out_write_impulse" to hardware
 */
-uint32_t px4_pwm_aux_out_getruntime(void);
+void px4_pwm_aux_out_update();
 
 #endif // PWM_AUX_OUT_H

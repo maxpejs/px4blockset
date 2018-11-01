@@ -1,13 +1,15 @@
 #include "pwm_aux_out.h"
 
 static float 	_impulse_fac[2];
-static uint8_t  _module_ready 			= DISABLE;
-static uint32_t _pwm_aux_out_runtime	= 0;
+static uint8_t  _module_ready = DISABLE;
+static uint16_t _impulse_values[6];
 
 TIM_HandleTypeDef TimHandler1, TimHandler4;
 
 void px4_pwm_aux_out_init(uint16_t * pwm_freqs)
 {
+	memset(_impulse_values, 0, sizeof(_impulse_values));
+
 	uint32_t prescalers[2];
 	uint32_t periods[2];
 
@@ -20,7 +22,7 @@ void px4_pwm_aux_out_init(uint16_t * pwm_freqs)
 		// calc prescaler so that we can use as much range of period as possible
 		// large period range means better pwm pulse accuracy
 		prescalers[i] = (HAL_RCC_GetSysClockFreq() / (i + 1)) / ((uint32_t) pwm_freqs[i] * 65535);
-		periods[i] = (HAL_RCC_GetSysClockFreq() / (i + 1)) / ((uint32_t) pwm_freqs[i] * (prescalers[i] + 1));
+		periods[i] 	  = (HAL_RCC_GetSysClockFreq() / (i + 1)) / ((uint32_t) pwm_freqs[i] * (prescalers[i] + 1));
 
 		// calc factor for calculating register compare value from pulse
 		_impulse_fac[i] = (float) (pwm_freqs[i] * periods[i]) / 1e6f;
@@ -89,51 +91,39 @@ void px4_pwm_aux_out_init(uint16_t * pwm_freqs)
 	HAL_TIM_PWM_Start(&TimHandler4, TIM_CHANNEL_3);	// aux6
 
 	_module_ready = ENABLE;
-	px4debug(eAUX_PWM, "pwm_aux_out init ok\r\n");
+	px4debug(ePWM_AUX, "pwm_aux_out init ok\r\n");
 }
 
-void px4_pwm_aux_out_write_impulse(uint16_t * impulse_values)
+void px4_pwm_aux_out_set(uint16_t * impulse_values)
 {
-	uint32_t start = tic();
+	memcpy(&_impulse_values, impulse_values, sizeof(_impulse_values));
+}
 
-	if(_module_ready == DISABLE)
+void px4_pwm_aux_out_update()
+{
+	if (_module_ready == DISABLE)
 	{
 		return;
 	}
 
 	for (int i = 0; i < MAX_AUX_OUT_SERVO_CNT; i++)
 	{
-		if (impulse_values[i] > PWM_AUX_OUT_IMPULSE_MAX)
+		if (_impulse_values[i] > PWM_AUX_OUT_IMPULSE_MAX)
 		{
-			impulse_values[i] = PWM_AUX_OUT_IMPULSE_MAX;
+			_impulse_values[i] = PWM_AUX_OUT_IMPULSE_MAX;
 		}
 
-		if (impulse_values[i] < PWM_AUX_OUT_IMPULSE_MIN)
+		if (_impulse_values[i] < PWM_AUX_OUT_IMPULSE_MIN)
 		{
-			impulse_values[i] = PWM_AUX_OUT_IMPULSE_MIN;
+			_impulse_values[i] = PWM_AUX_OUT_IMPULSE_MIN;
 		}
 	}
 
 	// update period value
-//	__HAL_TIM_SET_COMPARE(&TimHandler1, TIM_CHANNEL_4, impulse_values[0] * _impulse_fac[0]);
-//	__HAL_TIM_SET_COMPARE(&TimHandler1, TIM_CHANNEL_3, impulse_values[1] * _impulse_fac[0]);
-//	__HAL_TIM_SET_COMPARE(&TimHandler1, TIM_CHANNEL_2, impulse_values[2] * _impulse_fac[0]);
-//	__HAL_TIM_SET_COMPARE(&TimHandler1, TIM_CHANNEL_1, impulse_values[3] * _impulse_fac[0]);
-//
-//	__HAL_TIM_SET_COMPARE(&TimHandler4, TIM_CHANNEL_2, impulse_values[4] * _impulse_fac[1]);
-//	__HAL_TIM_SET_COMPARE(&TimHandler4, TIM_CHANNEL_3, impulse_values[5] * _impulse_fac[1]);
-
-	TIM1->CCR4 = impulse_values[0] * _impulse_fac[0];
-	TIM1->CCR3 = impulse_values[1] * _impulse_fac[0];
-	TIM1->CCR2 = impulse_values[2] * _impulse_fac[0];
-	TIM1->CCR1 = impulse_values[3] * _impulse_fac[0];
-	TIM4->CCR2 = impulse_values[4] * _impulse_fac[1];
-	TIM4->CCR3 = impulse_values[5] * _impulse_fac[1];
-	
-	_pwm_aux_out_runtime = (uint32_t)toc(start);
-}
-
-uint32_t px4_pwm_aux_out_getruntime(void)
-{
-	return _pwm_aux_out_runtime;
+	TIM1->CCR4 = _impulse_values[0] * _impulse_fac[0];
+	TIM1->CCR3 = _impulse_values[1] * _impulse_fac[0];
+	TIM1->CCR2 = _impulse_values[2] * _impulse_fac[0];
+	TIM1->CCR1 = _impulse_values[3] * _impulse_fac[0];
+	TIM4->CCR2 = _impulse_values[4] * _impulse_fac[1];
+	TIM4->CCR3 = _impulse_values[5] * _impulse_fac[1];
 }

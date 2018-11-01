@@ -182,7 +182,7 @@ clean :
 
 .PHONY: clean
 
-signal_output.o sd_card_logger.o: px4_task_time_config.h
+signal_output.o sd_card_logger.o: px4_task_config.h
 
 %closefile tmpBuf
 %endfunction

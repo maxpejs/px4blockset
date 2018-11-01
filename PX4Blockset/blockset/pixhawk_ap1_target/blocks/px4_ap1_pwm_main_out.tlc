@@ -4,6 +4,16 @@
 %function BlockTypeSetup(block, system) void
 	%<LibAddToCommonIncludes("pwm_main_out.h")>
 	%<LibAddToCommonIncludes("tasks.h")>
+	
+	%% activate task if block is used in model
+	%openfile tmpBuf
+		#define PX4_PWM_MAIN_OUT_TASK_ENABLE
+		#define PX4_PWM_MAIN_OUT_TASK_SAMPLE_TIME	100
+    %closefile tmpBuf
+	%assign file = LibCreateSourceFile("Header", "Simulink", "px4_task_config")
+	%<LibAddSourceFileCustomSection(file, "Defines", "customDefines")>
+	%<LibSetSourceFileCustomSection(file, "customDefines", tmpBuf)>
+	
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -33,8 +43,6 @@
 	
 		pwm_main_out_settings_st pwm_main_set = {%<def_pwm>, %<alt_pwm>, bitmask};
 		px4_pwm_main_out_init(&pwm_main_set);
-		px4_tasks_register_task(ePWM_MAIN, "pwm_main", px4_pwm_main_out_update, 100, 1024, ePrioNormal);
-		
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

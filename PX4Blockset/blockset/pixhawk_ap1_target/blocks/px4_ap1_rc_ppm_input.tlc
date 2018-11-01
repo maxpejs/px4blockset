@@ -5,6 +5,16 @@
 %function BlockTypeSetup(block, system) void
 	%<LibAddToCommonIncludes("rc_ppm_input.h")>
 	%<LibAddToCommonIncludes("tasks.h")>
+	
+	%% activate task if block is used in model
+	%openfile tmpBuf
+		#define PX4_RC_PPM_INPUT_TASK_ENABLE
+		#define PX4_RC_PPM_INPUT_TASK_SAMPLE_TIME	50
+    %closefile tmpBuf
+	%assign file = LibCreateSourceFile("Header", "Simulink", "px4_task_config")
+	%<LibAddSourceFileCustomSection(file, "Defines", "customDefines")>
+	%<LibSetSourceFileCustomSection(file, "customDefines", tmpBuf)>
+	
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -14,7 +24,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %function Start(block, system) Output
     px4_rc_ppm_input_init();
-	px4_tasks_register_task(ePPM_INPUT, "rc_in", px4_rc_ppm_input_update, 100, 0, ePrioNormal);
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

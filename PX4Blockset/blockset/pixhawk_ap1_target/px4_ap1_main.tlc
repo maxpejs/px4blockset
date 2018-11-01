@@ -27,21 +27,74 @@
 		comm_itf_print_string(PX4_MODEL_NAME);
 		comm_itf_print_string("\n******************************************\n");
 		
+		// Initialize model
+        %<LibCallModelInitialize()>
+		
 		// initialize task manager
 		px4_tasks_initialize();
 		
 		// register simulink model task
-		px4_tasks_register_task(eAPPL, "appl", %<LibGetModelName()>_step, PX4_APP_TASK_TIME, 0, ePrioHigh);
+		px4_tasks_register_task(eAPPL, "appl", %<LibGetModelName()>_step, PX4_APP_TASK_TIME, 4096, ePrioHigh);
 		
 		// register communication task
-		px4_tasks_register_task(eCOMMITF, "comm_itf", comm_itf_task_function, 10, 3000, ePrioNormal);
+		px4_tasks_register_task(eCOMMITF, "comm_itf", comm_itf_task_function, 10, 1024, ePrioIdle);
 		
 		// register cpu_load calculation task
-		px4_tasks_register_task(eCPU_LOAD, "cpu_load", 	cpu_load_update, 500, 0, ePrioNormal);
+		px4_tasks_register_task(eCPU_LOAD, "cpu_load", 	cpu_load_update, 500, 1024, ePrioNormal);
 		
-		// Initialize model
-        %<LibCallModelInitialize()>
+		
+		//====================================
+		// enable tasks if simulink block is used in the model
+		
+	#ifdef PX4_PWM_MAIN_OUT_TASK_ENABLE
+		px4_tasks_register_task(ePWM_MAIN, "pwm_main", px4_pwm_main_out_update, 
+		PX4_PWM_MAIN_OUT_TASK_SAMPLE_TIME, 1024, ePrioNormal);
+	#endif
 
+	#ifdef PX4_MPU6000_TASK_ENABLE
+		px4_tasks_register_task(eMPU6000, "mpu6000", px4_mpu6000_update, 
+		PX4_MPU6000_TASK_SAMPLE_TIME, 1024, ePrioAboveNormal);
+	#endif
+	
+	#ifdef PX4_RC_PPM_INPUT_TASK_ENABLE
+		px4_tasks_register_task(ePPM_INPUT, "rc_in", px4_rc_ppm_input_update, PX4_RC_PPM_INPUT_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
+	#endif
+	
+	#ifdef PX4_PPWM_AUX_OUT_TASK_ENABLE
+		px4_tasks_register_task(ePWM_AUX, "pwm_aux", px4_pwm_aux_out_update, 
+		PX4_PPWM_AUX_OUT_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
+	#endif
+	
+	#ifdef PX4_COLOR_LED_TASK_ENABLE
+		px4_tasks_register_task(eCOLORLED, "color_led", px4_color_power_led_update,
+		PX4_COLOR_LED_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
+	#endif
+	
+	#ifdef PX4_HMC5883_TASK_ENABLE
+		px4_tasks_register_task(eCOLORLED, "hmc5883", px4_hmc5883_update,
+		PX4_HMC5883_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
+	#endif
+	
+	#ifdef PX4_MS5611_TASK_ENABLE
+		px4_tasks_register_task(eCOLORLED, "hmc5883", px4_ms5611_update,
+		PX4_MS5611_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
+	#endif
+	
+	#ifdef PX4_SDCARD_LOGGER_TASK_ENABLE
+		px4_tasks_register_task(eSDCARD, "sdcard_log", px4_sd_card_logger_task,
+		PX4_SDCARD_LOGGER_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
+	#endif
+	
+	#ifdef PX4_SIGNAL_LOGGER_TASK_ENABLE
+		px4_tasks_register_task(eSIGLOGGER, "signal_log", px4_signal_output_task,
+		PX4_SIGNAL_LOGGER_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
+	#endif
+	
+	#ifdef PX4_GPS_TASK_ENABLE 
+		px4_tasks_register_task(eGPS, "gps", px4_gps_update,
+		PX4_GPS_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
+	#endif
+	
 		// start scheduler
 		px4_tasks_run();
 		

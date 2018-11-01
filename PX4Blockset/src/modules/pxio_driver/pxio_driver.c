@@ -1,6 +1,6 @@
 #include "pxio_driver.h"
 
-static struct IOPacket 		dmaBuffer;
+static struct IOPacket 		dmaTxBuffer;
 static struct IOPacket 		dmaRxBuffer;
 static uint8_t				module_state = DISABLE;
 
@@ -16,7 +16,7 @@ void pxio_driver_init(void)
 {
 	if(module_state == DISABLE)
 	{
-		memset(&dmaBuffer,   0, sizeof(dmaBuffer));
+		memset(&dmaTxBuffer, 0, sizeof(dmaTxBuffer));
 		memset(&dmaRxBuffer, 0, sizeof(dmaRxBuffer));
 
 		__HAL_RCC_GPIOC_CLK_ENABLE();
@@ -202,15 +202,15 @@ int32_t write(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 	int tries = TRANSMIT_TRIES_CNT;
 	do
 	{
-		memset(&dmaBuffer, 0, sizeof(dmaBuffer));
-		dmaBuffer.count_code = count | PKT_CODE_WRITE;
-		dmaBuffer.page = page;
-		dmaBuffer.offset = offset;
-		memcpy((void*) &dmaBuffer.regs[0], (void*) values, count*2);
+		memset(&dmaTxBuffer, 0, sizeof(dmaTxBuffer));
+		dmaTxBuffer.count_code = count | PKT_CODE_WRITE;
+		dmaTxBuffer.page = page;
+		dmaTxBuffer.offset = offset;
+		memcpy((void*) &dmaTxBuffer.regs[0], (void*) values, count*2);
 
 		for (unsigned i = count; i < PKT_MAX_REGS; i++)
 		{
-			dmaBuffer.regs[i] = 0x55aa;
+			dmaTxBuffer.regs[i] = 0x55aa;
 		}
 
 		result = com_complete();
@@ -244,10 +244,10 @@ int32_t read(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 	int tries = TRANSMIT_TRIES_CNT;
 	do
 	{
-		memset(&dmaBuffer, 0, sizeof(dmaBuffer));
-		dmaBuffer.count_code = count | PKT_CODE_READ;
-		dmaBuffer.page = page;
-		dmaBuffer.offset = offset;
+		memset(&dmaTxBuffer, 0, sizeof(dmaTxBuffer));
+		dmaTxBuffer.count_code = count | PKT_CODE_READ;
+		dmaTxBuffer.page = page;
+		dmaTxBuffer.offset = offset;
 
 		result = com_complete();
 		
@@ -280,9 +280,10 @@ int32_t com_complete()
 {
 	int result = SUCCESS;
 
-	dmaBuffer.crc = 0;
-	dmaBuffer.crc = crc_packet(&dmaBuffer);
+	dmaTxBuffer.crc = 0;
+	dmaTxBuffer.crc = crc_packet(&dmaTxBuffer);
 
+	// init Rx buffer with sample 0xFF
 	memset(&dmaRxBuffer, 0xFF, sizeof(dmaRxBuffer));
 
 	// load rx dma interrupt
@@ -292,7 +293,7 @@ int32_t com_complete()
 	}
 
 	// load tx dma and fires
-	if (HAL_UART_Transmit_DMA(&PXIO_UART, (uint8_t*) &dmaBuffer, PKT_SIZE(dmaBuffer)) != HAL_OK)
+	if (HAL_UART_Transmit_DMA(&PXIO_UART, (uint8_t*) &dmaTxBuffer, PKT_SIZE(dmaTxBuffer)) != HAL_OK)
 	{
 		px4debug(eDRV, "setup tx dma err\r\n");
 	}

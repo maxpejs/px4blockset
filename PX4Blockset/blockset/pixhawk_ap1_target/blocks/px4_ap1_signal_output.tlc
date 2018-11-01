@@ -4,6 +4,17 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %function BlockTypeSetup(block, system) void
 	%<LibAddToCommonIncludes("signal_output.h")>
+	%<LibAddToCommonIncludes("tasks.h")>	
+	
+	%% activate task if block is used in model
+	%openfile tmpBuf
+		#define PX4_SIGNAL_LOGGER_TASK_ENABLE
+		#define PX4_SIGNAL_LOGGER_TASK_SAMPLE_TIME	100
+    %closefile tmpBuf
+	%assign file = LibCreateSourceFile("Header", "Simulink", "px4_task_config")
+	%<LibAddSourceFileCustomSection(file, "Defines", "customDefines")>
+	%<LibSetSourceFileCustomSection(file, "customDefines", tmpBuf)>
+	
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

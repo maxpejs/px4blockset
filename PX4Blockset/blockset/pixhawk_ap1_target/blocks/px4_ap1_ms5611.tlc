@@ -4,6 +4,16 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %function BlockTypeSetup(block, system) void
 	%<LibAddToCommonIncludes("ms5611.h")>
+	%<LibAddToCommonIncludes("tasks.h")>	
+	
+	%% activate task if block is used in model
+	%openfile tmpBuf
+		#define PX4_MS5611_TASK_ENABLE
+		#define PX4_MS5611_TASK_SAMPLE_TIME	10
+    %closefile tmpBuf
+	%assign file = LibCreateSourceFile("Header", "Simulink", "px4_task_config")
+	%<LibAddSourceFileCustomSection(file, "Defines", "customDefines")>
+	%<LibSetSourceFileCustomSection(file, "customDefines", tmpBuf)>
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

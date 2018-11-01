@@ -7,7 +7,7 @@
 	%<LibAddToCommonIncludes("<rtwtypes.h>")>
 	%<LibAddToCommonIncludes("cpu_load.h")>
 	%<LibAddToCommonIncludes("target_setup.h")>
-	%<LibAddToCommonIncludes("px4_task_time_config.h")>
+	%<LibAddToCommonIncludes("px4_task_config.h")>
 	%<LibAddToCommonIncludes("stm32f4xx_hal.h")>
 	
 	%openfile tmpBuf
@@ -16,7 +16,7 @@
     #define PX4_APP_TASK_TIME %<sTime>
     #define PX4_MODEL_NAME "%<LibGetModelName()>"
     %closefile tmpBuf
-	%assign file = LibCreateSourceFile("Header", "Simulink", "px4_task_time_config")
+	%assign file = LibCreateSourceFile("Header", "Simulink", "px4_task_config")
 	%<LibAddSourceFileCustomSection(file, "Defines", "customDefines")>
 	%<LibSetSourceFileCustomSection(file, "customDefines", tmpBuf)>
     

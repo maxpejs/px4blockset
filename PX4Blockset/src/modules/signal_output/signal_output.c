@@ -22,6 +22,7 @@ void px4_signal_output_init(uint32_t sample_time_ms, uint32_t sig_cnt)
 	_sample_time_us = sample_time_ms * 1000;
 	memset(&rbuff, 0 , sizeof(ring_buff_data_st));
 	
+	px4debug(eSIGLOGGER, "signal logger init ok \r\n");
 	_module_state = ENABLE;
 }
 

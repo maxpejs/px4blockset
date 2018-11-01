@@ -14,12 +14,14 @@
 */
 typedef void (* callback_t)();
 
+#define DEFAULT_STACK_SIZE configMINIMAL_STACK_SIZE
+
 typedef enum
 {
 	eNONE = 0,	// is used for printing to console only still no schedule is running
 	eDRV,		// enum defined only for logging low level driver messages (spi, i2c, pxio)
 	eAPPL,
-	eAUX_PWM,
+	ePWM_AUX,
 	ePWM_MAIN,
 	eCOLORLED,
 	ePPM_INPUT,

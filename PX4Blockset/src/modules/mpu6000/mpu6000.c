@@ -22,6 +22,7 @@ static void mpu6000_init_sensor();
 
 void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 {
+	px4debug(eMPU6000, "mpu6000 init ... \r\n");
 	memcpy(&_settings, in_settings, sizeof(mpu6000_settings_st));
 	memset(&_mpu6000_data_storage, 0, sizeof(_mpu6000_data_storage));
 
@@ -34,7 +35,7 @@ void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 	_storage_idx = 0;
 
 	_module_state = ENABLE;
-	px4debug(eMPU6000, "mpu6000 init ok");
+	px4debug(eMPU6000, "mpu6000 init ok \r\n");
 }
 
 void px4_mpu6000_update()

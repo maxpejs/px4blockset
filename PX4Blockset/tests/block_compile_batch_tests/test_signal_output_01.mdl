@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.36"
+    ComputedModelVersion    "1.39"
     NumModelReferences	    0
     NumTestPointedSignals   0
     NumProvidedFunctions    0
@@ -67,7 +67,7 @@ Model {
 	LoadSaveID		"0"
 	Extents			[1672.0, 688.0]
 	ZoomFactor		[1.25]
-	Offset			[0.0, 0.0]
+	Offset			[-138.43121288938255, -13.090311403500436]
       }
       Object {
 	$PropName		"DockComponentsInfo"
@@ -100,9 +100,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Privat"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Fri Apr 13 23:40:30 2018"
-  RTWModifiedTimeStamp	  445563628
-  ModelVersionFormat	  "1.%<AutoIncrement:36>"
+  LastModifiedDate	  "Thu Nov 01 23:49:22 2018"
+  RTWModifiedTimeStamp	  463016959
+  ModelVersionFormat	  "1.%<AutoIncrement:39>"
   ConfigurationManager	  "none"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -980,6 +980,19 @@ Model {
   }
   BlockParameterDefaults {
     Block {
+      BlockType		      Constant
+      Value		      "1"
+      VectorParams1D	      on
+      SamplingMode	      "Sample based"
+      OutMin		      "[]"
+      OutMax		      "[]"
+      OutDataTypeStr	      "Inherit: Inherit from 'Constant value'"
+      LockScale		      off
+      SampleTime	      "inf"
+      FramePeriod	      "inf"
+      PreserveConstantTs      off
+    }
+    Block {
       BlockType		      DataTypeConversion
       OutMin		      "[]"
       OutMax		      "[]"
@@ -1022,7 +1035,15 @@ Model {
     ShowPageBoundaries	    off
     ZoomFactor		    "125"
     ReportName		    "simulink-default.rpt"
-    SIDHighWatermark	    "7"
+    SIDHighWatermark	    "10"
+    Block {
+      BlockType		      Constant
+      Name		      "Constant"
+      SID		      "8"
+      Position		      [205, 357, 310, 393]
+      ZOrder		      1
+      Value		      "0.123456789"
+    }
     Block {
       BlockType		      Reference
       Name		      "Counter\nFree-Running"
@@ -1052,6 +1073,16 @@ Model {
       SID		      "3"
       Position		      [425, 93, 500, 127]
       ZOrder		      -3
+      RndMeth		      "Floor"
+      SaturateOnIntegerOverflow	off
+    }
+    Block {
+      BlockType		      DataTypeConversion
+      Name		      "Data Type Conversion2"
+      SID		      "10"
+      Position		      [550, 358, 625, 392]
+      ZOrder		      3
+      OutDataTypeStr	      "single"
       RndMeth		      "Floor"
       SaturateOnIntegerOverflow	off
     }
@@ -1089,7 +1120,7 @@ Model {
       SID		      "6"
       Description	      "Setup for PX4 native software"
       Ports		      [10]
-      Position		      [735, 108, 1000, 292]
+      Position		      [905, 75, 1110, 430]
       ZOrder		      -6
       LibraryVersion	      "1.124"
       SourceBlock	      "px4_ap1_signal_output_lib/px4_signal_logger"
@@ -1125,6 +1156,7 @@ Model {
       ZOrder		      5
       SrcBlock		      "Data Type Conversion1"
       SrcPort		      1
+      Points		      [198, 0; 0, -15]
       DstBlock		      "px4_signal_logger1"
       DstPort		      1
     }
@@ -1132,28 +1164,42 @@ Model {
       ZOrder		      3
       SrcBlock		      "Gain"
       SrcPort		      1
-      Points		      [80, 0; 0, -8]
+      Points		      [250, 0; 0, -15]
       Branch {
-	ZOrder			10
-	Points			[35, 0; 0, 48]
-	DstBlock		"px4_signal_logger1"
-	DstPort			10
-      }
-      Branch {
-	ZOrder			9
-	Points			[0, -52]
+	ZOrder			15
+	Points			[0, -28]
 	Branch {
-	  ZOrder		  8
-	  DstBlock		  "px4_signal_logger1"
-	  DstPort		  5
-	}
-	Branch {
-	  ZOrder		  7
-	  Points		  [0, -60]
+	  ZOrder		  9
+	  Points		  [0, -77]
 	  DstBlock		  "px4_signal_logger1"
 	  DstPort		  2
 	}
+	Branch {
+	  ZOrder		  10
+	  Points		  [35, 0; 0, 203]
+	  DstBlock		  "px4_signal_logger1"
+	  DstPort		  10
+	}
       }
+      Branch {
+	ZOrder			8
+	DstBlock		"px4_signal_logger1"
+	DstPort			5
+      }
+    }
+    Line {
+      ZOrder		      17
+      SrcBlock		      "Data Type Conversion2"
+      SrcPort		      1
+      DstBlock		      "px4_signal_logger1"
+      DstPort		      9
+    }
+    Line {
+      ZOrder		      19
+      SrcBlock		      "Constant"
+      SrcPort		      1
+      DstBlock		      "Data Type Conversion2"
+      DstPort		      1
     }
   }
 }

@@ -134,7 +134,7 @@ void px4_sd_card_logger_add_val(uint32_t log_id, float * values)
 
 	if (file_data_arr[log_id] == 0)
 	{
-		px4debug(eSDCARD, "error at px4_sd_card_logger_set => NULL-pointer access!\r\n");
+		px4debug(eSDCARD, "error at px4_sd_card_logger_add_val => NULL-pointer access!\r\n");
 		return;
 	}
 
@@ -514,7 +514,7 @@ static void _px4_sd_card_logger_stop()
 	{
 		if (file_data_arr[i] == 0)
 		{
-			px4debug(eSDCARD, "error at px4_sd_card_logger_task => NULL-pointer access!");
+			px4debug(eSDCARD, "error at _px4_sd_card_logger_stop => NULL-pointer access!");
 			continue;
 		}
 
@@ -542,7 +542,7 @@ static void _px4_sd_card_logger_resume()
 	{
 		if (file_data_arr[i] == 0)
 		{
-			px4debug(eSDCARD, "error at px4_sd_card_logger_task => NULL-pointer access!");
+			px4debug(eSDCARD, "error at _px4_sd_card_logger_resume => NULL-pointer access!");
 			continue;
 		}
 

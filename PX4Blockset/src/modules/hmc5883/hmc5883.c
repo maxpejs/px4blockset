@@ -42,6 +42,8 @@ static uint32_t _get_scale(void);
 
 void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 {
+	px4debug(eHMC5883, "hmc5883 init ... \r\n");
+
 	// copy settings to internal var
 	memcpy(&_settings, in_settings, sizeof(_settings));
 	memset(&_hmc5883_data_storage, 0, sizeof(_hmc5883_data_storage));
@@ -64,6 +66,7 @@ void px4_hmc5883_update()
 {
 	if (_module_state == DISABLE)
 	{
+		// try to init
 		return;
 	}
 

@@ -30,6 +30,7 @@
 *****************************************************************************/
 #ifndef SIGNAL_OUTPUT_H
 #define SIGNAL_OUTPUT_H
+#include <inttypes.h>
 
 /**
 *	TODO
