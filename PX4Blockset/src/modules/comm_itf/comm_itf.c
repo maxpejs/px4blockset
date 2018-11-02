@@ -322,11 +322,11 @@ void process_received_cmd(void)
 	}
 	else if (strncmp(buff, SD_CARD_LIST_FILE, strlen(SD_CARD_LIST_FILE)) == 0)
 	{
-		px4_sd_card_logger_process_cmd(buff);
+		px4_sd_card_logger_add_user_cmd(buff);
 	}
 	else if (strncmp(buff, SD_CARD_DEL_FILE, strlen(SD_CARD_DEL_FILE)) == 0)
 	{
-		px4_sd_card_logger_process_cmd(buff);
+		px4_sd_card_logger_add_user_cmd(buff);
 	}
 	else if (strncmp(buff, TASK_LOAD, strlen(TASK_LOAD)) == 0)
 	{
@@ -370,7 +370,6 @@ void print_help()
 	px4debug(eCOMMITF, "\r\nOTHER COMANDS\r\n");
 	px4debug(eCOMMITF, "-------------\r\n");
 	px4debug(eCOMMITF, "'log cpu'       - log cpu usage\r\n");
-	px4debug(eCOMMITF, "'log runtime'   - log calculated runtimes of all modules\r\n");
 	px4debug(eCOMMITF, "'log off'       - disable all logging\r\n");
 	px4debug(eCOMMITF, "'taskload' 	    - log task cpu usage since last taskload call\r\n");
 	px4debug(eCOMMITF, "'top'           - log cyclic task cpu usage\r\n");
@@ -400,6 +399,7 @@ void print_task_load()
 		firstcall = 0;
 		memcpy(last_task_state, val, sizeof(val));
 		last_total_tick_counter = total;
+//		print_task_load();
 		return;
 	}
 
@@ -440,14 +440,14 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 	va_list arg;
 	va_start(arg, MESSAGE);
 
-	int messageSize = 100;
+	int messageSize = 256;
 	int cnt = -1;
 
 	// if we logging from comm module, or specific logging (startup routienes)
 	// or if no sceduler is running (queue mechanism doesn't active yet)
 	if (id == eCOMMITF || id == eNONE || xTaskGetSchedulerState() != taskSCHEDULER_RUNNING)
 	{
-		char arr[100];
+		char arr[256];
 		cnt = vsnprintf(arr, messageSize, MESSAGE, arg);
 		if (cnt == messageSize-1)
 		{
@@ -471,7 +471,7 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 		{
 			if ( xQueueSend(msgQueue, &pcStringToSend, 0) != pdTRUE)
 			{
-				comm_itf_print_string("Queue is full \r\n");
+				// px4debug(eNONE, "Queue is full, caused by %d \r\n", id);
 				// adding to queue failed, free memory
 				vPortFree(pcStringToSend);
 			}

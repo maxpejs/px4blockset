@@ -2,7 +2,7 @@
 #include "tasks.h"
 #include "defines.h"
 
-#define MSG_QUEUE_SIZE	20
+#define MSG_QUEUE_SIZE	30
 
 void Common_Task(void const * argv);
 

@@ -59,16 +59,10 @@ void px4_sd_card_logger_add_val(uint32_t id, float * values);
 */
 void px4_sd_card_logger_task(void);
 
-
-/**
-*	Returns current runtime of tx command
-*/
-uint32_t px4_sd_card_logger_getruntime(void);
-
 /**
  * TODO
  */
-void px4_sd_card_logger_process_cmd(const char * cmd);
+void px4_sd_card_logger_add_user_cmd(const char * cmd);
 
 #endif // SD_CARD_LOGGER_H
 

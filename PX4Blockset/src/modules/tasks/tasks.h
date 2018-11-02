@@ -23,12 +23,12 @@ typedef enum
 	eAPPL,
 	ePWM_AUX,
 	ePWM_MAIN,
-	eCOLORLED,
+	eCOLORLED,		// = 5
 	ePPM_INPUT,
 	eGPS,
 	eHMC5883,
 	eMPU6000,
-	eMS5611,
+	eMS5611,		// = 10
 	eSDCARD,
 	eSIGLOGGER,
 	eCOMMITF,

@@ -28,6 +28,7 @@ extern "C" {
 
 #include "integer.h"	/* Basic integer types */
 #include "ffconf.h"		/* FatFs configuration options */
+#include <cmsis_os.h>
 
 #if FF_DEFINED != FFCONF_DEF
 #error Wrong configuration file (ffconf.h).
@@ -224,8 +225,8 @@ typedef struct {
 /* File function return code (FRESULT) */
 
 typedef enum {
-	FR_OK = 0,				/* (0) Succeeded */
 	FR_DISK_ERR,			/* (1) A hard error occurred in the low level disk I/O layer */
+	FR_OK = 0,				/* (0) Succeeded */
 	FR_INT_ERR,				/* (2) Assertion failed */
 	FR_NOT_READY,			/* (3) The physical drive cannot work */
 	FR_NO_FILE,				/* (4) Could not find the file */
