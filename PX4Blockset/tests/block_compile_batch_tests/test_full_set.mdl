@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.160"
+    ComputedModelVersion    "1.161"
     NumModelReferences	    0
     NumTestPointedSignals   0
     NumProvidedFunctions    0
@@ -100,9 +100,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Privat"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Thu Nov 01 17:34:50 2018"
-  RTWModifiedTimeStamp	  462994252
-  ModelVersionFormat	  "1.%<AutoIncrement:160>"
+  LastModifiedDate	  "Fri Nov 02 23:39:13 2018"
+  RTWModifiedTimeStamp	  463102750
+  ModelVersionFormat	  "1.%<AutoIncrement:161>"
   ConfigurationManager	  "none"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -1547,7 +1547,7 @@ Model {
       SourceType	      "PX4_Target_Setup"
       SampleTimeValue	      "0.01"
       cbBuild		      on
-      cbUpload		      on
+      cbUpload		      off
       cbPort		      "COM3"
       cpuLoad		      on
       debugmode		      on

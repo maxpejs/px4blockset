@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.24"
+    ComputedModelVersion    "1.25"
     NumModelReferences	    0
     NumTestPointedSignals   0
     NumProvidedFunctions    0
@@ -67,7 +67,7 @@ Model {
 	LoadSaveID		"0"
 	Extents			[1404.0, 680.0]
 	ZoomFactor		[1.1090604026845639]
-	Offset			[130.77565360249639, 63.227269416541446]
+	Offset			[130.7756536024965, 63.227269416541446]
       }
       Object {
 	$PropName		"DockComponentsInfo"
@@ -100,9 +100,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Privat"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Thu Nov 01 12:32:58 2018"
-  RTWModifiedTimeStamp	  462975757
-  ModelVersionFormat	  "1.%<AutoIncrement:24>"
+  LastModifiedDate	  "Fri Nov 02 23:37:31 2018"
+  RTWModifiedTimeStamp	  463102646
+  ModelVersionFormat	  "1.%<AutoIncrement:25>"
   ConfigurationManager	  "none"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -1079,7 +1079,7 @@ Model {
       SourceType	      "PX4_Target_Setup"
       SampleTimeValue	      "0.01"
       cbBuild		      on
-      cbUpload		      on
+      cbUpload		      off
       cbPort		      "COM3"
       cpuLoad		      on
       debugmode		      on

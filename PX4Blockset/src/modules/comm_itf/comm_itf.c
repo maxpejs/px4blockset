@@ -399,7 +399,6 @@ void print_task_load()
 		firstcall = 0;
 		memcpy(last_task_state, val, sizeof(val));
 		last_total_tick_counter = total;
-//		print_task_load();
 		return;
 	}
 

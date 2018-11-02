@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.25"
+    ComputedModelVersion    "1.26"
     NumModelReferences	    0
     NumTestPointedSignals   0
     NumProvidedFunctions    0
@@ -66,7 +66,7 @@ Model {
 	ViewObjType		"SimulinkTopLevel"
 	LoadSaveID		"0"
 	Extents			[1246.0, 664.0]
-	ZoomFactor		[0.88]
+	ZoomFactor		[0.87999999999999989]
 	Offset			[0.0, 0.0]
       }
       Object {
@@ -100,9 +100,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Privat"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Wed Sep 05 21:31:30 2018"
-  RTWModifiedTimeStamp	  458083721
-  ModelVersionFormat	  "1.%<AutoIncrement:25>"
+  LastModifiedDate	  "Fri Nov 02 23:38:44 2018"
+  RTWModifiedTimeStamp	  463102721
+  ModelVersionFormat	  "1.%<AutoIncrement:26>"
   ConfigurationManager	  "none"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -1103,7 +1103,7 @@ Model {
       SourceType	      "PX4_Target_Setup"
       SampleTimeValue	      "0.071"
       cbBuild		      on
-      cbUpload		      on
+      cbUpload		      off
       cbPort		      "COM3"
       cpuLoad		      on
       debugmode		      on

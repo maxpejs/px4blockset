@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.20"
+    ComputedModelVersion    "1.21"
     NumModelReferences	    0
     NumTestPointedSignals   0
     NumProvidedFunctions    0
@@ -41,7 +41,7 @@ Model {
       $ObjectID		      2
       $ClassName	      "Simulink.WindowInfo"
       IsActive		      [1]
-      Location		      [87.0, 52.0, 1304.0, 853.0]
+      Location		      [159.0, 71.0, 1304.0, 853.0]
       Object {
 	$PropName		"ModelBrowserInfo"
 	$ObjectID		3
@@ -100,9 +100,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "Privat"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Wed Oct 31 23:11:00 2018"
-  RTWModifiedTimeStamp	  462928259
-  ModelVersionFormat	  "1.%<AutoIncrement:20>"
+  LastModifiedDate	  "Fri Nov 02 23:37:38 2018"
+  RTWModifiedTimeStamp	  463102656
+  ModelVersionFormat	  "1.%<AutoIncrement:21>"
   ConfigurationManager	  "none"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -995,7 +995,7 @@ Model {
   }
   System {
     Name		    "test_pwm_main_out_01"
-    Location		    [87, 52, 1391, 905]
+    Location		    [159, 71, 1463, 924]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -1127,7 +1127,7 @@ Model {
       SourceType	      "PX4_Target_Setup"
       SampleTimeValue	      "0.01"
       cbBuild		      on
-      cbUpload		      on
+      cbUpload		      off
       cbPort		      "COM3"
       cpuLoad		      off
       debugmode		      on
