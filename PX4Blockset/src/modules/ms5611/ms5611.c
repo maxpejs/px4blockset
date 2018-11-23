@@ -164,5 +164,5 @@ void px4_ms5611_init()
 	px4_spi_drv_init(PX4_SPI1);
 	_ms5611_init_sensor();
 	_module_state = ENABLE;
-	px4debug(eMS5611, "ms5611 init ok \r\n");
+	px4debug(eCOMMITF, "ms5611 init ok \r\n");
 }

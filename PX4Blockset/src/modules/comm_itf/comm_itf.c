@@ -157,8 +157,7 @@ void comm_itf_task_function(void)
 		return;
 	}
 
-	// ===============================================
-	// process interaction with user
+	// 1. process interaction with user
 	check_rx_buff();
 
 	if (_cmd_received == COMPLETED)
@@ -167,31 +166,28 @@ void comm_itf_task_function(void)
 		_cmd_received = NOT_COMPLETED;
 	}
 
-	// ===============================================
+	// 2.
 	process_cyclic_print();
 
-	// ===============================================
-	// check logging queues from other tasks
-	QueueHandle_t nextQueueWithData = NULL;
+	// 3.
+	QueueHandle_t comm_itf_queue_handle = getQueueHandleByEnum(eCOMMITF);
+	BaseType_t ret = pdFALSE;
 
 	do
 	{
-		nextQueueWithData = (QueueHandle_t) xQueueSelectFromSet(px4_tasks_get_queueset(), 0);
-		if (nextQueueWithData != NULL)
+		char *queueRecvString = NULL;
+		ret = xQueueReceive(comm_itf_queue_handle, &queueRecvString, portTICK_PERIOD_MS * 10); // wait 10ms
+		if (ret == pdTRUE && queueRecvString != NULL)
 		{
-			char *queueRecvString = NULL;
-			xQueueReceive(nextQueueWithData, &queueRecvString, portTICK_PERIOD_MS * 10);
-			if (queueRecvString != NULL)
-			{
-				send_over_uart(queueRecvString);
-				vPortFree(queueRecvString);
-			}
-			else
-			{
-				// comm_itf_print_string("queue is empty");
-			}
+			send_over_uart(queueRecvString);
+			vPortFree(queueRecvString);
 		}
-	} while (nextQueueWithData != NULL);
+		else
+		{
+			// comm_itf_print_string("queue is empty");
+		}
+
+	} while (ret == pdTRUE);
 }
 
 void process_cyclic_print(void)
@@ -442,10 +438,10 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 	int messageSize = 256;
 	int cnt = -1;
 
-	// if we logging from comm module, or specific logging (startup routienes)
-	// or if no sceduler is running (queue mechanism doesn't active yet)
-	if (id == eCOMMITF || id == eNONE || xTaskGetSchedulerState() != taskSCHEDULER_RUNNING)
+	// if no sceduler is running (queue mechanism doesn't active yet)
+	if (xTaskGetSchedulerState() != taskSCHEDULER_RUNNING)
 	{
+		// use dynamic strings
 		char arr[256];
 		cnt = vsnprintf(arr, messageSize, MESSAGE, arg);
 		if (cnt == messageSize-1)
@@ -470,7 +466,7 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 		{
 			if ( xQueueSend(msgQueue, &pcStringToSend, 0) != pdTRUE)
 			{
-				// px4debug(eNONE, "Queue is full, caused by %d \r\n", id);
+				// px4debug(eCOMMITF, "Queue is full, caused by %d \r\n", id);
 				// adding to queue failed, free memory
 				vPortFree(pcStringToSend);
 			}
