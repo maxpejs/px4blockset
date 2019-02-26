@@ -367,7 +367,7 @@ void print_help()
 	px4debug(eCOMMITF, "-------------\r\n");
 	px4debug(eCOMMITF, "'log cpu'       - log cpu usage\r\n");
 	px4debug(eCOMMITF, "'log off'       - disable all logging\r\n");
-	px4debug(eCOMMITF, "'taskload' 	    - log task cpu usage since last taskload call\r\n");
+	px4debug(eCOMMITF, "'taskload'		- log task cpu usage since last taskload call\r\n");
 	px4debug(eCOMMITF, "'top'           - log cyclic task cpu usage\r\n");
 	px4debug(eCOMMITF, "===============================\r\n");
 }

@@ -16,88 +16,67 @@
 
 typedef struct
 {
-	FIL		 	fi;     	/* File object */
-	char 		filename[FILENAME_MAX_LENGTH];
-	char 		filename_prefix[FILENAME_MAX_LENGTH];
-	uint32_t 	id;
-	uint32_t 	sample_time;
-	uint32_t 	sample_cnt;
-	uint32_t 	sig_cnt;
-	uint32_t	tick_last_call;
-	uint32_t 	file_logger_state;
+	FIL fi; /* File object */
+	char filename[FILENAME_MAX_LENGTH];
+	char filename_prefix[FILENAME_MAX_LENGTH];
+	uint32_t sample_time;
+	uint32_t sample_cnt;
+	uint32_t sig_cnt;
+	uint32_t tick_last_call;
+	uint32_t file_logger_state;
 	ring_buff_data_st rbuff;
 
-}sd_card_file_info_st;
+} sd_card_file_info_st;
 
 /* FatFs variables */
-FATFS 	_sd_file_system;  			/* File system object for SD card logical drive */
+FATFS _sd_file_system; /* File system object for SD card logical drive */
 
-static char 	_drive_path[4]; 	/* SD card logical drive path */
-static uint32_t _module_state 		= DISABLE;
-static uint32_t _file_logger_cnt 	= 0;
+static char _drive_path[4]; /* SD card logical drive path */
+static uint32_t _module_state = DISABLE;
 
-static char 	_usercmd[20];
-static int 		_new_command_received = 0;
+static char _usercmd[20];
+static int _new_command_received = 0;
 
-static sd_card_file_info_st * file_data_arr[FILE_LOGGER_MAX_CNT];
+static sd_card_file_info_st sdcard_info_obj;
 
-static uint32_t 	_sd_card_logger_init_sdcard();
-static uint32_t 	_get_next_id_for_logfile(char * filename_prefix);
-static ErrorStatus 	_create_new_log_file(sd_card_file_info_st * info);
-static void 		_write_to_sd_card(sd_card_file_info_st * info);
-static void 		_delete_all_files();
-static void 		_list_single_file(char * path);
-static void 		_px4_sd_card_logger_stop();
-static void 		_px4_sd_card_logger_resume();
-static void 		_px4_sd_card_logger_process_cmd();
-static FRESULT 		_scan_files(char* path);
+static uint32_t _sd_card_logger_init_sdcard();
+static uint32_t _get_next_id_for_logfile(char * filename_prefix);
+static ErrorStatus _create_new_log_file(sd_card_file_info_st * info);
+static void _write_to_sd_card(sd_card_file_info_st * info);
+static void _delete_all_files();
+static void _list_single_file(char * path);
+static void _px4_sd_card_logger_stop();
+static void _px4_sd_card_logger_resume();
+static void _px4_sd_card_logger_process_cmd();
+static FRESULT _scan_files(char* path);
 
 void px4_sd_card_logger_init()
 {
 	_sd_card_logger_init_sdcard();
-	memset(file_data_arr, 0 , sizeof(file_data_arr));
+	memset(&sdcard_info_obj, 0, sizeof(sdcard_info_obj));
 	px4debug(eCOMMITF, "sd card logger init ok\r\n");
 	_module_state = ENABLE;
 }
 
-uint32_t px4_sd_card_logger_add_new_logger(uint32_t sampleTime, uint32_t sigCnt, char * file_name)
+void px4_sd_card_logger_add_new_logger(uint32_t sampleTime, uint32_t sigCnt, char * file_name)
 {
-	if (_file_logger_cnt >= FILE_LOGGER_MAX_CNT)
-	{
-		px4debug(eCOMMITF, "ERROR! sd card logger. max logger counter limit reached \r\n");
-		return 0xFFFFFFFF;
-	}
+	sdcard_info_obj.rbuff.read = 0;
+	sdcard_info_obj.rbuff.write = 0;
+	sdcard_info_obj.sample_time = sampleTime;
+	sdcard_info_obj.sig_cnt = (sigCnt > SIGNAL_MAX_CNT) ? SIGNAL_MAX_CNT : sigCnt;
 
-	uint32_t ret = _file_logger_cnt;
+	strncpy(sdcard_info_obj.filename_prefix, file_name, FILENAME_MAX_LENGTH - 4); // 3 chars for id, 1 for termination
 
-	sd_card_file_info_st * fi = calloc(1, sizeof(sd_card_file_info_st));
-
-	fi->rbuff.read 	= 0;
-	fi->rbuff.write = 0;
-
-	fi->id 				= _file_logger_cnt;
-	fi->sample_time 	= sampleTime;
-	fi->sig_cnt 		= (sigCnt > SIGNAL_MAX_CNT) ? SIGNAL_MAX_CNT : sigCnt;
-
-	strncpy(fi->filename_prefix, file_name, FILENAME_MAX_LENGTH-4); // 3 chars for id, 1 for termination
-
-	if (_create_new_log_file(fi) == ERROR)
+	if (_create_new_log_file(&sdcard_info_obj) == ERROR)
 	{
 		px4debug(eCOMMITF, "#Error creating new log file... Disabling SD Card module! \r\n");
 		_module_state = DISABLE;
-		return 0xFFFFFFFF;
 	}
 	else
 	{
-		fi->file_logger_state = ENABLE;
-
-			file_data_arr[_file_logger_cnt] = fi;
-			_file_logger_cnt++;
-			px4debug(eCOMMITF, "new logger %s created \r\n", fi->filename);
-			return ret;
+		sdcard_info_obj.file_logger_state = ENABLE;
+		px4debug(eCOMMITF, "new logger %s created \r\n", sdcard_info_obj.filename);
 	}
-
-	return ret;
 }
 
 void px4_sd_card_logger_add_val(uint32_t log_id, float * values)
@@ -114,36 +93,29 @@ void px4_sd_card_logger_add_val(uint32_t log_id, float * values)
 		return;
 	}
 
-	if (file_data_arr[log_id] == 0)
-	{
-		px4debug(eCOMMITF, "error at px4_sd_card_logger_add_val => NULL-pointer access! Log id:%d \r\n", log_id);
-		_module_state = DISABLE;
-		return;
-	}
-
 	// check if cycle time elapsed
-	if ((ts / 1000) < (file_data_arr[log_id]->sample_time * file_data_arr[log_id]->sample_cnt))
+	if ((ts / 1000) < (sdcard_info_obj.sample_time * sdcard_info_obj.sample_cnt))
 	{
 		return;
 	}
 
 	// init counter of samples for exact timing for adding values according to sampling time
-	if(file_data_arr[log_id]->sample_cnt == 0)
+	if (sdcard_info_obj.sample_cnt == 0)
 	{
-		file_data_arr[log_id]->sample_cnt = (uint32_t) (ts / 1000) / file_data_arr[log_id]->sample_time;
+		sdcard_info_obj.sample_cnt = (uint32_t) (ts / 1000) / sdcard_info_obj.sample_time;
 	}
 
-	file_data_arr[log_id]->sample_cnt++;
-	file_data_arr[log_id]->tick_last_call = ts/1000;
+	sdcard_info_obj.sample_cnt++;
+	sdcard_info_obj.tick_last_call = ts / 1000;
 
-	if (ring_buffer_free_space(&(file_data_arr[log_id]->rbuff)) > 0)
+	if (ring_buffer_free_space(&(sdcard_info_obj.rbuff)) > 0)
 	{
-		uint32_t idx = file_data_arr[log_id]->rbuff.write;
+		uint32_t idx = sdcard_info_obj.rbuff.write;
 
-		memcpy(file_data_arr[log_id]->rbuff.buff[idx].val, values, sizeof(float) * file_data_arr[log_id]->sig_cnt);
-		file_data_arr[log_id]->rbuff.buff[idx].timestamp = ts;
+		memcpy(sdcard_info_obj.rbuff.buff[idx].val, values, sizeof(float) * sdcard_info_obj.sig_cnt);
+		sdcard_info_obj.rbuff.buff[idx].timestamp = ts;
 
-		file_data_arr[log_id]->rbuff.write = ++idx % RING_BUFF_SIZE;
+		sdcard_info_obj.rbuff.write = ++idx % RING_BUFF_SIZE;
 	}
 	else
 	{
@@ -153,31 +125,14 @@ void px4_sd_card_logger_add_val(uint32_t log_id, float * values)
 
 void px4_sd_card_logger_task(void)
 {
-	if (_module_state == DISABLE)
+	if (_module_state == DISABLE || sdcard_info_obj.file_logger_state == DISABLE)
 	{
 		return;
 	}
 
-	for (uint32_t i = 0; i < _file_logger_cnt; i++)
-	{
-		if (file_data_arr[i] == 0)
-		{
-			px4debug(eCOMMITF, "error at px4_sd_card_logger_task => NULL-pointer access!");
-			_module_state = DISABLE;
-			continue;
-		}
-
-		if (file_data_arr[i]->file_logger_state == DISABLE)
-		{
-			continue;
-		}
-
-		_write_to_sd_card(file_data_arr[i]);
-
-	}
+	_write_to_sd_card(&sdcard_info_obj);
 
 	_px4_sd_card_logger_process_cmd();
-
 }
 
 static void _write_to_sd_card(sd_card_file_info_st * info)
@@ -193,10 +148,10 @@ static void _write_to_sd_card(sd_card_file_info_st * info)
 		// px4debug(eCOMMITF, "b.size %d r %d w %d", ring_buffer_count(&(info->rbuff)), info->rbuff.read, info->rbuff.write);
 
 		idxRead = info->rbuff.read;
-		idxWrite= info->rbuff.write;
+		idxWrite = info->rbuff.write;
 
 		uint32_t numofsamples = 0;
-		
+
 		// we want to write a couple of samples stored in ring buffer as single block on SD card
 		// we should be aware that we don't leave the array bound of the ring buffer during write process
 		if (idxWrite > idxRead)
@@ -207,7 +162,7 @@ static void _write_to_sd_card(sd_card_file_info_st * info)
 			//	[x] [x] [x] [x] [x] [x] [x] [x] [x]
 			//				 |
 			//				 r
-			
+
 			// count of samples stored in memory one after another
 			numofsamples = idxWrite - idxRead;
 			// px4debug(eCOMMITF, " w>r ");
@@ -220,7 +175,7 @@ static void _write_to_sd_card(sd_card_file_info_st * info)
 			//	[x] [x] [x] [x] [x] [x] [x] [x] [x]
 			//				 			 |
 			//				 			 r
-			
+
 			// count of samples stored in memory one after another until the end of array is reached
 			numofsamples = RING_BUFF_SIZE - idxRead;
 			// px4debug(eCOMMITF, " r>w ");
@@ -279,7 +234,6 @@ static ErrorStatus _create_new_log_file(sd_card_file_info_st * info)
 	f_sync(&(info->fi));
 	px4debug(eCOMMITF, "done \r\n");
 
-
 	// write number of signals as meta info
 	res |= f_write(&(info->fi), &(info->sig_cnt), sizeof(info->sig_cnt), &writtenbytes);
 	f_sync(&(info->fi));
@@ -334,7 +288,7 @@ static uint32_t _get_next_id_for_logfile(char * filename_prefix)
 						uint32_t t = atoi(&buffArr[a]);
 						if (t >= ret)
 						{
-							ret = t+1;
+							ret = t + 1;
 						}
 					}
 				}
@@ -355,12 +309,12 @@ static void _copy_file_name_from_cmd(const char * cmd, char * file)
 	while (*cmd != 0 && *cmd != ' ')
 		cmd++;
 
-	if(*cmd == 0)
+	if (*cmd == 0)
 		return;
 
 	cmd++;
 
-	while(*cmd != '\r' && *cmd != '\n' && *cmd != 0)
+	while (*cmd != '\r' && *cmd != '\n' && *cmd != 0)
 		*file++ = *cmd++;
 
 	*file = 0;
@@ -374,7 +328,7 @@ static void _copy_file_name_from_cmd(const char * cmd, char * file)
 
 void px4_sd_card_logger_add_user_cmd(const char * cmd)
 {
-	memcpy(_usercmd, cmd, strlen(cmd)+1);
+	memcpy(_usercmd, cmd, strlen(cmd) + 1);
 	_new_command_received = 1;
 }
 
@@ -486,8 +440,8 @@ static FRESULT _scan_files(char* path)
 
 			f_close(&f);
 
-			px4debug(eCOMMITF, "/%s|%i|%i|%i|%i|%i\r\n", fno.fname, (int) fno.fsize,
-					(int) (timeline / 60), (int) (timeline - (timeline / 60) * 60), (int) sig_cnt, (int) sampletime);
+			px4debug(eCOMMITF, "/%s|%i|%i|%i|%i|%i\r\n", fno.fname, (int) fno.fsize, (int) (timeline / 60),
+					(int) (timeline - (timeline / 60) * 60), (int) sig_cnt, (int) sampletime);
 		}
 
 		f_closedir(&dir);
@@ -505,25 +459,15 @@ static FRESULT _scan_files(char* path)
 //========================================================================================
 static void _px4_sd_card_logger_stop()
 {
-	for (uint32_t i = 0; i < _file_logger_cnt; i++)
+	if (sdcard_info_obj.file_logger_state == ENABLE)
 	{
-		if (file_data_arr[i] == 0)
+		if (f_close(&(sdcard_info_obj.fi)) == FR_OK)
 		{
-			px4debug(eCOMMITF, "error at _px4_sd_card_logger_stop => NULL-pointer access!");
-			continue;
+			sdcard_info_obj.file_logger_state = DISABLE;
 		}
-
-		if (file_data_arr[i]->file_logger_state == ENABLE)
+		else
 		{
-			if (f_close(&(file_data_arr[i]->fi)) == FR_OK)
-			{
-				file_data_arr[i]->file_logger_state = DISABLE;
-			}
-			else
-			{
-				px4debug(eCOMMITF, "error at closing file on px4_sd_card_logger_stop");
-				continue;
-			}
+			px4debug(eCOMMITF, "error at closing file on px4_sd_card_logger_stop");
 		}
 	}
 }
@@ -533,25 +477,16 @@ static void _px4_sd_card_logger_stop()
 //========================================================================================
 static void _px4_sd_card_logger_resume()
 {
-	for (uint32_t i = 0; i < _file_logger_cnt; i++)
+	if (sdcard_info_obj.file_logger_state == DISABLE)
 	{
-		if (file_data_arr[i] == 0)
+		if (_create_new_log_file(&sdcard_info_obj) == SUCCESS)
 		{
-			px4debug(eCOMMITF, "error at _px4_sd_card_logger_resume => NULL-pointer access!");
-			continue;
+			sdcard_info_obj.file_logger_state = ENABLE;
 		}
-
-		if (file_data_arr[i]->file_logger_state == DISABLE)
+		else
 		{
-			if (_create_new_log_file(file_data_arr[i]) == SUCCESS)
-			{
-				file_data_arr[i]->file_logger_state = ENABLE;
-			}
-			else
-			{
-				px4debug(eCOMMITF, "#Error creating new log file... Disabling SD Card module! \r\n");
-				_module_state = DISABLE;
-			}
+			px4debug(eCOMMITF, "#Error creating new log file... Disabling SD Card module! \r\n");
+			_module_state = DISABLE;
 		}
 
 	}
@@ -619,12 +554,6 @@ static void _list_single_file(char * path)
 	uint32_t sig_cnt, sampletime;
 	uint32_t packagesize;
 
-	if ( FILE_LOGGER_MAX_CNT == _file_logger_cnt)
-	{
-		px4debug(eCOMMITF, "Error, max count of parallel allowed opened files is reached\r\n");
-		return;
-	}
-
 	res = f_open(&f, path, FA_READ);
 	f_sync(&f);
 
@@ -689,7 +618,6 @@ static void _list_single_file(char * path)
 	px4debug(eCOMMITF, "=== END ===\r\n");
 	f_close(&f);
 }
-
 
 #if FF_FS_REENTRANT
 int ff_cre_syncobj(BYTE vol, FF_SYNC_t* sobj)
