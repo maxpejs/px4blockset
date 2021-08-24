@@ -22,7 +22,7 @@ void px4_sd_card_logger_add_new_logger(uint32_t sample_time, uint32_t sig_cnt, c
 /**
  *
  */
-void px4_sd_card_logger_add_val(uint32_t id, float * values);
+void px4_sd_card_logger_add_val(float * values);
 
 /**
 *	TODO
