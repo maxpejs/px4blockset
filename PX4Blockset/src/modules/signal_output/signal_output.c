@@ -4,8 +4,6 @@
 #include <comm_itf.h>
 #include <logger_ring_buffer.h>
 
-#define SIGNAL_MAX_CNT 		10
-
 static uint32_t _sig_cnt 		= 0U;
 static uint32_t _sample_time_us	= 0U;
 static uint32_t _log_enabled 	= 0U;
