@@ -1,9 +1,9 @@
 #include "hmc5883.h"
 
-static uint32_t  _module_state 		= DISABLE;
+static uint32_t _module_state = DISABLE;
 
-static hmc5883_data_st 		_hmc5883_data_storage[2];
-static hmc5883_settings_st 	_settings;
+static hmc5883_data_st _hmc5883_data_storage[2];
+static hmc5883_settings_st _settings;
 
 static uint32_t storage_idx = 0;
 
@@ -28,7 +28,7 @@ void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 	}
 	else
 	{
-		px4debug(eCOMMITF,"err at hmc5883 init!\r\n");
+		px4debug(eCOMMITF, "err at hmc5883 init!\r\n");
 	}
 }
 
@@ -45,7 +45,7 @@ void px4_hmc5883_update()
 
 	if (result == ERROR)
 	{
-		px4debug(eCOMMITF,"err tx cmd at compass module!\r\n");
+		px4debug(eCOMMITF, "err tx cmd at compass module!\r\n");
 		return;
 	}
 
@@ -59,29 +59,38 @@ void px4_hmc5883_update()
 	}
 
 	// toggle storage index
-	uint32_t id = (storage_idx + 1) % 2;
+	uint32_t idx = (storage_idx + 1) % 2;
 
-	float scale = (float)_get_scale();
-	_hmc5883_data_storage[id].magX = (float)TWO_UINT8_TO_INT16(rx[0], rx[1]) / scale;
-	_hmc5883_data_storage[id].magZ = (float)TWO_UINT8_TO_INT16(rx[2], rx[3]) / scale;
-	_hmc5883_data_storage[id].magY = (float)TWO_UINT8_TO_INT16(rx[4], rx[5]) / scale;
-	_hmc5883_data_storage[id].isNew = 1;  // mark as new data package
-	storage_idx = id;
+	float scale = (float) _get_scale();
+	_hmc5883_data_storage[idx].magX = (float) TWO_UINT8_TO_INT16(rx[0], rx[1]) / scale;
+	_hmc5883_data_storage[idx].magZ = (float) TWO_UINT8_TO_INT16(rx[2], rx[3]) / scale;
+	_hmc5883_data_storage[idx].magY = (float) TWO_UINT8_TO_INT16(rx[4], rx[5]) / scale;
+	_hmc5883_data_storage[idx].isNew = 1;  // mark as new data package
+	storage_idx = idx;
 }
 
 static uint32_t _get_scale(void)
 {
-	switch(_settings.magRange)
+	switch (_settings.magRange)
 	{
-	case HMC5883_RANGE_0_88:	return 1370;
-	case HMC5883_RANGE_1_3:		return 1090;
-	case HMC5883_RANGE_1_9:		return 820;
-	case HMC5883_RANGE_2_5:		return 660;
-	case HMC5883_RANGE_4_0:		return 440;
-	case HMC5883_RANGE_4_7:		return 390;
-	case HMC5883_RANGE_5_6:		return 330;
-	case HMC5883_RANGE_8_1:		return 230;
-	default:					return 1090;	// range +/- 1,3Ga is default chip setting
+	case HMC5883_RANGE_0_88:
+		return 1370;
+	case HMC5883_RANGE_1_3:
+		return 1090;
+	case HMC5883_RANGE_1_9:
+		return 820;
+	case HMC5883_RANGE_2_5:
+		return 660;
+	case HMC5883_RANGE_4_0:
+		return 440;
+	case HMC5883_RANGE_4_7:
+		return 390;
+	case HMC5883_RANGE_5_6:
+		return 330;
+	case HMC5883_RANGE_8_1:
+		return 230;
+	default:
+		return 1090;	// range +/- 1,3Ga is default chip setting
 	}
 }
 
@@ -93,7 +102,7 @@ void px4_hmc5883_get(hmc5883_data_st * data)
 
 static uint32_t hmc5883_enable(void)
 {
-	uint8_t msg[2] = {0};
+	uint8_t msg[2] = { 0 };
 	uint32_t result = SUCCESS;
 
 	// set sample rate & averaging
@@ -106,7 +115,6 @@ static uint32_t hmc5883_enable(void)
 	msg[1] = _settings.magRange;
 	result &= px4_i2c_drv_transmit(HMC5883_I2C_ITF, HMC5883_I2C_DEVICE_ADDRESS, msg, sizeof(msg));
 
-
 	msg[0] = HMC5883_REG_MODE;
 	msg[1] = 0;
 	result &= px4_i2c_drv_transmit(HMC5883_I2C_ITF, HMC5883_I2C_DEVICE_ADDRESS, msg, sizeof(msg));
@@ -116,5 +124,4 @@ static uint32_t hmc5883_enable(void)
 
 	return result;
 }
-
 

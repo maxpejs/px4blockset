@@ -452,7 +452,7 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 	}
 	else
 	{
-		// logging from regular modules and sceduler is already running
+		// logging from regular modules and scheduler is already running
 		// so create a message and send over queue to comm task
 		char * pcStringToSend = (char *) pvPortMalloc(messageSize);
 		cnt = vsnprintf(pcStringToSend, messageSize, MESSAGE, arg);

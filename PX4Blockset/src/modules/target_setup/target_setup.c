@@ -83,10 +83,10 @@ void HAL_MspInit(void)
 	__HAL_RCC_GPIOD_CLK_ENABLE();
 	__HAL_RCC_GPIOE_CLK_ENABLE();
 
-	// activate power source for 5V peripherie
+	// activate power source for 5V periphery
 	_setup_gpio(GPIOA, GPIO_PIN_8, GPIO_MODE_OUTPUT_PP, GPIO_PULLDOWN, GPIO_SPEED_FAST, NONE, GPIO_PIN_RESET);
 
-	// activate power source for 3.3V peripherie
+	// activate power source for 3.3V periphery
 	_setup_gpio(GPIOE, GPIO_PIN_3, GPIO_MODE_OUTPUT_PP, GPIO_PULLDOWN, GPIO_SPEED_FAST, NONE, GPIO_PIN_SET);
 
 	// config pin VDD_BRICK_VALID

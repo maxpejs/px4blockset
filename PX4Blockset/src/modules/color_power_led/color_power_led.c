@@ -4,7 +4,11 @@ static uint32_t _module_state = DISABLE;
 static color_led_data_st rgb_color[2], rgb_last;
 static uint32_t storage_idx;
 
-static int color_power_led_enable(void);
+int color_power_led_enable(void)
+{
+	uint8_t msg[2] = { SUB_ADDR_SETTINGS, SET_ENABLE_DATA|SET_SHDN };
+	return px4_i2c_drv_transmit(COLOR_LED_I2C_ITF, COLOR_LED_I2C_DEV_ADDR, msg, sizeof(msg));
+}
 
 void px4_color_power_led_init()
 {
@@ -67,13 +71,9 @@ void px4_color_power_led_update()
 
 void px4_color_power_led_set(uint32_t r, uint32_t g, uint32_t b)
 {
-	rgb_color[storage_idx].r = (r >> 4); // rescale to 16/256
+	// rescale from 0...255 to 0...16
+	rgb_color[storage_idx].r = (r >> 4);
 	rgb_color[storage_idx].g = (g >> 4);
 	rgb_color[storage_idx].b = (b >> 4);
 }
 
-int color_power_led_enable(void)
-{
-	uint8_t msg[2] = { SUB_ADDR_SETTINGS, SET_ENABLE_DATA|SET_SHDN };
-	return px4_i2c_drv_transmit(COLOR_LED_I2C_ITF, COLOR_LED_I2C_DEV_ADDR, msg, sizeof(msg));
-}

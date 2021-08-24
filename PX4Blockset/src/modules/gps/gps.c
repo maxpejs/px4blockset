@@ -2,33 +2,34 @@
 
 typedef struct
 {
-	uint8_t  buff[GPS_RING_BUFF_SIZE];
+	uint8_t buff[GPS_RING_BUFF_SIZE];
 	uint32_t read;
 	uint32_t write;
-}ring_buffer;
+} ring_buffer;
 
-static uint8_t  			_parser_buff[2][GPS_SENTENCE_BUFF_SIZE];
-static uint8_t  			_rmc_raw_string[GPS_SENTENCE_BUFF_SIZE];
-static gps_rmc_packet_st 	_rmc_storage[2];
+static uint8_t _parser_buff[2][GPS_SENTENCE_BUFF_SIZE];
+static uint8_t _rmc_raw_string[GPS_SENTENCE_BUFF_SIZE];
 
-static uint8_t  _crc_idx 	 = 0;
-static uint8_t  _recv_crc 	 = 0;
+static gps_rmc_packet_st _rmc_storage[2];
+
+static uint8_t _crc_idx = 0;
+static uint8_t _recv_crc = 0;
 static uint32_t _time_rx_last_rmc_msg = 0;
-static uint8_t  _module_state 	 	  = DISABLE;
+static uint8_t _module_state = DISABLE;
 
-static ring_buffer 	  _rb;
+static ring_buffer _rb;
 
 static uint32_t _storage_idx = 0;
 
 UART_HandleTypeDef GpsUart;
 
 // internal functions
-static 			uint8_t 	calculate_nmea_crc(uint8_t * buff);
-static inline 	uint8_t 	ring_buffer_pop(ring_buffer * b);
-static inline 	uint32_t 	ring_buffer_empty(ring_buffer * b);
-static 			uint32_t 	ring_buffer_free_space(ring_buffer * b);
-static 			void 		state_machine_process_new_byte(uint8_t rxChar);
-static 			void 		gps_setup_uart(uint32_t baud);
+static uint8_t calculate_nmea_crc(uint8_t * buff);
+static inline uint8_t ring_buffer_pop(ring_buffer * b);
+static inline uint32_t ring_buffer_empty(ring_buffer * b);
+static uint32_t ring_buffer_free_space(ring_buffer * b);
+static void state_machine_process_new_byte(uint8_t rxChar);
+static void gps_setup_uart(uint32_t baud);
 
 typedef enum
 {
@@ -38,8 +39,8 @@ typedef enum
 	CHK_SUM			// get checksum
 } state;
 
-static state 	_act_state = SYNC_SOS;
-static uint8_t 	_char_idx  = 0;
+static state _act_state = SYNC_SOS;
+static uint8_t _char_idx = 0;
 
 void px4_gps_init(uint32_t baud)
 {
@@ -49,8 +50,6 @@ void px4_gps_init(uint32_t baud)
 	memset(_parser_buff, 0, sizeof(_parser_buff));
 	// memset(_rmc_raw_string, 0, sizeof(_rmc_raw_string));
 	memcpy(_rmc_raw_string, "not available yet", sizeof(_rmc_raw_string));
-
-
 
 	gps_setup_uart(baud);
 
@@ -64,14 +63,15 @@ static void gps_setup_uart(uint32_t baud)
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_UART4_CLK_ENABLE();
 
-	GpsUart.Instance 			= UART4;
-	GpsUart.Init.BaudRate 		= baud;
-	GpsUart.Init.WordLength 	= UART_WORDLENGTH_8B;
-	GpsUart.Init.StopBits 		= UART_STOPBITS_1;
-	GpsUart.Init.Parity 		= UART_PARITY_NONE;
-	GpsUart.Init.HwFlowCtl 		= UART_HWCONTROL_NONE;
-	GpsUart.Init.Mode 			= UART_MODE_TX_RX;
-	GpsUart.Init.OverSampling 	= UART_OVERSAMPLING_16;
+	GpsUart.Instance = UART4;
+	GpsUart.Init.BaudRate = baud;
+	GpsUart.Init.WordLength = UART_WORDLENGTH_8B;
+	GpsUart.Init.StopBits = UART_STOPBITS_1;
+	GpsUart.Init.Parity = UART_PARITY_NONE;
+	GpsUart.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	GpsUart.Init.Mode = UART_MODE_TX_RX;
+	GpsUart.Init.OverSampling = UART_OVERSAMPLING_16;
+
 	if (HAL_UART_Init(&GpsUart) != HAL_OK)
 	{
 		px4debug(eCOMMITF, "gps HAL_UART_Init err!\r\n");
@@ -79,18 +79,18 @@ static void gps_setup_uart(uint32_t baud)
 	}
 
 	GPIO_InitTypeDef GPIO_InitStruct;
-	GPIO_InitStruct.Pin 		= GPIO_PIN_0 | GPIO_PIN_1;
-	GPIO_InitStruct.Mode 		= GPIO_MODE_AF_PP;
-	GPIO_InitStruct.Pull 		= GPIO_NOPULL;
-	GPIO_InitStruct.Speed 		= GPIO_SPEED_FAST;
-	GPIO_InitStruct.Alternate 	= GPIO_AF8_UART4;
+	GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
+	GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 	HAL_NVIC_SetPriority(UART4_IRQn, GPS_UART_IRQ_PRIO, 0);
 	HAL_NVIC_EnableIRQ(UART4_IRQn);
 
 	// start receiving
-	if (HAL_UART_Receive_IT(&GpsUart, &(_rb.buff[_rb.write]), GPS_RX_PACKAGE_LENGTH)!= HAL_OK)
+	if (HAL_UART_Receive_IT(&GpsUart, &(_rb.buff[_rb.write]), GPS_RX_PACKAGE_LENGTH) != HAL_OK)
 	{
 		px4debug(eCOMMITF, "gps HAL_UART_Receive_IT err!\r\n");
 		error_handler(0);
@@ -159,7 +159,7 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 				parse_nmea_rmc_sentence(_parser_buff[_storage_idx], &_rmc_storage[_storage_idx]);
 
 				// copy the raw string from the received buffer
-				memcpy(_rmc_raw_string, _parser_buff[_storage_idx], strlen((const char*)_parser_buff[_storage_idx]) + 1);
+				memcpy(_rmc_raw_string, _parser_buff[_storage_idx], strlen((const char*) _parser_buff[_storage_idx]) + 1);
 
 				// clear received buffer
 				memset(_parser_buff[_storage_idx], 0, sizeof(_parser_buff[_storage_idx]));
@@ -196,7 +196,6 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 	}
 }
 
-
 void px4_gps_update(void)
 {
 	if (_module_state == DISABLE)
@@ -227,7 +226,7 @@ void px4_gps_get(gps_rmc_packet_st * pData)
 
 void px4_gps_get_raw(uint8_t * buff)
 {
-	memcpy(buff, _rmc_raw_string, strlen((const char*)_rmc_raw_string) + 1);
+	memcpy(buff, _rmc_raw_string, strlen((const char*) _rmc_raw_string) + 1);
 }
 
 void px4_gps_rx_complete_event()
