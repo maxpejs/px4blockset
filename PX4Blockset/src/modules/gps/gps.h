@@ -14,7 +14,7 @@
 
 #define RMC_SENTENCE_HEADER			"$GPRMC"
 
-#define GPS_SENTENCE_BUFF_SIZE		90
+#define GPS_SENTENCE_BUFF_SIZE		100
 #define GPS_RING_BUFF_SIZE			500
 #define GPS_RX_PACKAGE_LENGTH		50	// buffer length for single interrupt
 

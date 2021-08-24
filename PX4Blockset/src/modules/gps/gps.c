@@ -8,6 +8,7 @@ typedef struct
 }ring_buffer;
 
 static uint8_t  			_parser_buff[2][GPS_SENTENCE_BUFF_SIZE];
+static uint8_t  			_rmc_raw_string[GPS_SENTENCE_BUFF_SIZE];
 static gps_rmc_packet_st 	_rmc_storage[2];
 
 static uint8_t  _crc_idx 	 = 0;
@@ -46,6 +47,10 @@ void px4_gps_init(uint32_t baud)
 	memset(&_rmc_storage, 0, sizeof(_rmc_storage));
 	memset(&_rb, 0, sizeof(_rb));
 	memset(_parser_buff, 0, sizeof(_parser_buff));
+	// memset(_rmc_raw_string, 0, sizeof(_rmc_raw_string));
+	memcpy(_rmc_raw_string, "not available yet", sizeof(_rmc_raw_string));
+
+
 
 	gps_setup_uart(baud);
 
@@ -112,7 +117,7 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 		if (rxChar == ',')
 		{
 			// check if we are reading GPRMC - Sentence
-			if (strncmp((const char*) _parser_buff, RMC_SENTENCE_HEADER, strlen(RMC_SENTENCE_HEADER)) == 0)
+			if (strncmp((const char*) _parser_buff[_storage_idx], RMC_SENTENCE_HEADER, strlen(RMC_SENTENCE_HEADER)) == 0)
 				_act_state = GET_DATA;
 			else
 				_act_state = SYNC_SOS;
@@ -152,6 +157,12 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 
 				// parse the string to single data values
 				parse_nmea_rmc_sentence(_parser_buff[_storage_idx], &_rmc_storage[_storage_idx]);
+
+				// copy the raw string from the received buffer
+				memcpy(_rmc_raw_string, _parser_buff[_storage_idx], strlen((const char*)_parser_buff[_storage_idx]) + 1);
+
+				// clear received buffer
+				memset(_parser_buff[_storage_idx], 0, sizeof(_parser_buff[_storage_idx]));
 
 				// switch the storage bank
 				_storage_idx = (_storage_idx + 1) % 2;
@@ -216,7 +227,7 @@ void px4_gps_get(gps_rmc_packet_st * pData)
 
 void px4_gps_get_raw(uint8_t * buff)
 {
-	memcpy(buff, _parser_buff[_storage_idx], GPS_SENTENCE_BUFF_SIZE);
+	memcpy(buff, _rmc_raw_string, strlen((const char*)_rmc_raw_string) + 1);
 }
 
 void px4_gps_rx_complete_event()
