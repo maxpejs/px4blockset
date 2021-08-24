@@ -1,5 +1,4 @@
 /**
-*
 *   @author Max Pejs <max.pejs@googlemail.com>
 *	@date 	2018
 */

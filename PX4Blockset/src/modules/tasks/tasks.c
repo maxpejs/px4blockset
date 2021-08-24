@@ -22,7 +22,6 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 	_tasklist[id].taskPrio 		= taskPrio;
 	_tasklist[id].sampleTime 	= sampleTime;
 
-
 	memcpy(_tasklist[id].name, name, strlen(name));
 
 	px4debug(eCOMMITF, "Register task \"%s\"\r\n", _tasklist[id].name);
@@ -43,7 +42,7 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 	// set different message queue size
 	switch (id)
 	{
-	case eCOMMITF: 	msgQueueSize = 100; break;
+	case eCOMMITF: 	msgQueueSize = 1000; break;
 	case eSDCARD: 	msgQueueSize = 10; 	break;
 	default: 		msgQueueSize = MSG_QUEUE_SIZE_DEFAULT;	break;
 	}
@@ -68,7 +67,7 @@ void Common_Task(void const * argv)
 {
 	px4_task * task = (px4_task*) argv;
 
-	px4debug(task->taskID, "entry task \"%s\"\r\n", task->name);
+	px4debug(eCOMMITF, "entry task \"%s\"\r\n", task->name);
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -87,7 +86,7 @@ void Common_Task(void const * argv)
 
 		if(mutex_exist & !mutex_taken)
 		{
-			px4debug(task->taskID, "mutex not taken\r\n");
+			px4debug(eCOMMITF, "mutex not taken. Task:%s\r\n", task->name);
 		}
 
 		if ((mutex_exist & mutex_taken) || (!mutex_exist))

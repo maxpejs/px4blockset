@@ -367,7 +367,7 @@ void print_help()
 	px4debug(eCOMMITF, "-------------\r\n");
 	px4debug(eCOMMITF, "'log cpu'       - log cpu usage\r\n");
 	px4debug(eCOMMITF, "'log off'       - disable all logging\r\n");
-	px4debug(eCOMMITF, "'taskload' 	    - log task cpu usage since last taskload call\r\n");
+	px4debug(eCOMMITF, "'taskload'		- log task cpu usage since last taskload call\r\n");
 	px4debug(eCOMMITF, "'top'           - log cyclic task cpu usage\r\n");
 	px4debug(eCOMMITF, "===============================\r\n");
 }
@@ -452,7 +452,7 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 	}
 	else
 	{
-		// logging from regular modules and sceduler is already running
+		// logging from regular modules and scheduler is already running
 		// so create a message and send over queue to comm task
 		char * pcStringToSend = (char *) pvPortMalloc(messageSize);
 		cnt = vsnprintf(pcStringToSend, messageSize, MESSAGE, arg);

@@ -12,7 +12,7 @@ uint8_t get_next_field(uint8_t * src, uint8_t * dst, uint8_t idx)
 	dst[i] = 0;
 
 	// return start index of the next field
-	return k+1;
+	return k + 1;
 }
 
 void parse_nmea_rmc_sentence(uint8_t * rxMsgBuffer, gps_rmc_packet_st * rmcData)

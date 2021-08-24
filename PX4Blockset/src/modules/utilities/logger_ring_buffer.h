@@ -2,7 +2,7 @@
 #define LOGGER_RING_BUFFER_H
 #include <inttypes.h>
 
-#define SIGNAL_MAX_CNT 		10
+#define SIGNAL_MAX_CNT 		15
 #define RING_BUFF_SIZE		200
 
 typedef struct
@@ -19,22 +19,22 @@ typedef struct
 }ring_buff_data_st;
 
 /**
-*	TODO
+*	returns true if ringbuffer is full
 */
 uint32_t ring_buffer_full(ring_buff_data_st * b);
 
 /**
-*	TODO
+*	returns true if ringbuffer is empty
 */
 uint32_t ring_buffer_empty(ring_buff_data_st * b);
 
 /**
-*	TODO
+*	returns free space size
 */
 uint32_t ring_buffer_free_space(ring_buff_data_st * b);
 
 /**
-*	TODO
+*	returns used space size
 */
 uint32_t ring_buffer_count(ring_buff_data_st * b);
 
