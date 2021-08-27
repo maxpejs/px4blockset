@@ -78,28 +78,27 @@
 #define BIT_GYRO_ACCEL_TEMP_RESET 	0x07
 
 /**
-* 	struct with settings for mpu600 setup
-*/
+ * 	struct with settings for mpu600 setup
+ */
 typedef struct
 {
 	uint32_t accel_range;	// data range for accelerometer. Use defines, e.g. symbol BITS_FS_2G for +-2g
-	uint32_t gyro_range;		// data range for gyroscope. Use defines e.g. symbol BITS_FS_250DPS for +-250°/s
+	uint32_t gyro_range;	// data range for gyroscope. Use defines e.g. symbol BITS_FS_250DPS for +-250°/s
 	uint32_t dlpf_cfg;		// cutoff frequency for low pass filter setting. Use defines, e.g. BITS_DLPF_CFG_5HZ
-	uint32_t smplrt_cfg;		// Divider for measurement calculation ratio inside mpu6000. 0x00 means full speed => 8kHz for accel + 1kHz for gyro
-	
+	uint32_t smplrt_cfg;// Divider for measurement calculation ratio inside mpu6000. 0x00 means full speed => 8kHz for accel + 1kHz for gyro
+
 	float scale_accel_x;	// Correction factor for acceleration along x axis
 	float scale_accel_y;	// ... y axis
 	float scale_accel_z;	// ... z axis
-	
+
 	float offset_accel_x;	// Offset for acceleration along x axis
 	float offset_accel_y;	// ... y axis
 	float offset_accel_z;	// ... z axis
-}mpu6000_settings_st;
-
+} mpu6000_settings_st;
 
 /**
-*	measurement data storage struct
-*/
+ *	measurement data storage struct
+ */
 typedef struct
 {
 	float accel_x;	// acceleration along x axis
@@ -109,22 +108,21 @@ typedef struct
 	float gyro_x;	// angular speed in °/s around x axis
 	float gyro_y;
 	float gyro_z;
-}mpu6000_data_st;
+} mpu6000_data_st;
 
 /**
-* TODO
-*/
+ * initialize module
+ */
 void px4_mpu6000_init(mpu6000_settings_st * in_settings);
 
 /**
-* TODO
-*/
+ * get last data received from mpu6000 chip
+ */
 void px4_mpu6000_get(mpu6000_data_st * data);
 
 /**
- * 	Function for reading the new values from mpu6000 sensor over spi
+ * 	function for reading the new values from mpu6000 sensor over spi
  */
 void px4_mpu6000_update();
-
 
 #endif // MPU6000_H

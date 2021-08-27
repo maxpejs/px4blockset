@@ -1,7 +1,7 @@
 #ifndef GPS_H
 #define GPS_H
 
-#include "stm32f4xx_hal.h"
+#include <stm32f4xx_hal.h>
 #include <defines.h>
 #include <inttypes.h>
 #include <error_handler.h>
@@ -9,17 +9,17 @@
 #include <timestamp.h>
 #include <gps_rmc_parcer.h>
 
-#define RECEIVE_TIMEOUT				1500000	// timeout im µs after that the rmc data set to invalid if no new sentence are incoming
+#define GPS_RECEIVE_TIMEOUT				1500000	// timeout im µs after that the rmc data set to invalid if no new sentence are incoming
 #define RMC_DATA_UPDATE_FREQ		1		// update frequence of NMEA 0183 RMC
 
-#define RMC_SENTENCE_HEADER			"$GPRMC"
+#define RMC_HEADER					"$GPRMC"
 
 #define GPS_SENTENCE_BUFF_SIZE		100
 #define GPS_RING_BUFF_SIZE			500
-#define GPS_RX_PACKAGE_LENGTH		50	// buffer length for single interrupt
+#define GPS_RX_PACKAGE_LENGTH		50	// call "received"-interrupt after receiving this amount of chars
 
 #if GPS_RING_BUFF_SIZE % GPS_RX_PACKAGE_LENGTH != 0
-#error "Wrong size of GPS_RING_BUFF_SIZE or GPS_RX_PACKAGE_LENGTH. Schould be: GPS_RING_BUFF_SIZE % GPS_RX_PACKAGE_LENGTH = 0"
+#error "Wrong size of GPS_RING_BUFF_SIZE or GPS_RX_PACKAGE_LENGTH. Should be: GPS_RING_BUFF_SIZE % GPS_RX_PACKAGE_LENGTH = 0"
 #endif
 
 /**

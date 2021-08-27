@@ -7,17 +7,10 @@
 #include <timestamp.h>
 #include <comm_itf.h>
 
-
 /**
 * 	TODO
 */
 void px4_sd_card_logger_init();
-
-
-/**
- *	TODO
- */
-void px4_sd_card_logger_add_new_logger(uint32_t sample_time, uint32_t sig_cnt, char * file_name);
 
 /**
  *

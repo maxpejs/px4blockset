@@ -48,12 +48,11 @@ void px4_gps_init(uint32_t baud)
 	memset(&_rmc_storage, 0, sizeof(_rmc_storage));
 	memset(&_rb, 0, sizeof(_rb));
 	memset(_parser_buff, 0, sizeof(_parser_buff));
-	// memset(_rmc_raw_string, 0, sizeof(_rmc_raw_string));
-	memcpy(_rmc_raw_string, "not available yet", sizeof(_rmc_raw_string));
+	memset(_rmc_raw_string, 0, sizeof(_rmc_raw_string));
 
 	gps_setup_uart(baud);
 
-	// TODO setup gps chip using ublox protocol, only RMC sentense schould be sent
+	// TODO setup gps chip using ublox protocol, only RMC sentense should be sent
 	_module_state = ENABLE;
 	px4debug(eCOMMITF, "gps init ok \r\n");
 }
@@ -117,7 +116,7 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 		if (rxChar == ',')
 		{
 			// check if we are reading GPRMC - Sentence
-			if (strncmp((const char*) _parser_buff[_storage_idx], RMC_SENTENCE_HEADER, strlen(RMC_SENTENCE_HEADER)) == 0)
+			if (strncmp((const char*) _parser_buff[_storage_idx], RMC_HEADER, strlen(RMC_HEADER)) == 0)
 				_act_state = GET_DATA;
 			else
 				_act_state = SYNC_SOS;
@@ -203,14 +202,14 @@ void px4_gps_update(void)
 		return;
 	}
 
-	// parse just some chars during single call
+	// parse all chars received until yet
 	while (!ring_buffer_empty(&_rb))
 	{
 		state_machine_process_new_byte(ring_buffer_pop(&_rb));
 	}
 
 	// first check if there are new data from gps sensor
-	if (toc(_time_rx_last_rmc_msg) > RECEIVE_TIMEOUT)
+	if (toc(_time_rx_last_rmc_msg) > GPS_RECEIVE_TIMEOUT)
 	{
 		// mark dataset for reading as invalid => is too old
 		uint32_t id = (_storage_idx + 1) % 2;
@@ -240,7 +239,7 @@ void px4_gps_rx_complete_event()
 	}
 	else
 	{
-		px4debug(eCOMMITF, "gps. not enought free space in ring buffer! \r\n");
+		px4debug(eCOMMITF, "gps. no space in rb\r\n");
 	}
 
 	// TODO check write limit on single operation (write pointer overflow)

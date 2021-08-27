@@ -10,9 +10,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define FILENAME_MAX_LENGTH 		13
-#define MIN_PACKAGE_SIZE_CNT 		8
-#define WRITE_BLOCK_SIZE_BYTES		512
+#define FILENAME_MAX_LENGTH 	13
+#define MIN_PACKAGE_SIZE_CNT 	8
+#define WRITE_BLOCK_SIZE_BYTES	512
 
 typedef struct
 {
@@ -34,10 +34,16 @@ typedef struct
 
 } sd_card_file_meta_info_st;
 
-/* FatFs variables */
-FATFS _file_system; /* File system object for SD card logical drive */
 
-static char _drive_path[4]; /* SD card logical drive path */
+// forward declarations
+ErrorStatus _create_new_log_file();
+FRESULT _scan_files(char* path);
+
+
+/* FatFs variables */
+FATFS _file_system; // File system object for SD card logical drive
+
+static char _drive_path[4]; // SD card logical drive path
 static uint32_t _module_state = DISABLE;
 static uint32_t _state_before_stop = DISABLE;
 
@@ -46,95 +52,107 @@ static int _new_command_received = 0;
 
 static sd_card_file_info_st file_info;
 
-static uint32_t _sd_card_logger_init_sdcard();
-static uint32_t _get_next_id_for_logfile(char * filename_prefix);
-static ErrorStatus _create_new_log_file();
-static void _write_to_sd_card();
-static void _delete_all_files();
-static void _list_single_file(char * path);
-static void _px4_sd_card_logger_stop();
-static void _px4_sd_card_logger_resume();
-static void _px4_sd_card_logger_process_cmd();
-static FRESULT _scan_files(char* path);
-
-void px4_sd_card_logger_init()
+/*****************************************************/
+void _px4_sd_card_logger_stop()
 {
-	_sd_card_logger_init_sdcard();
-	memset(&file_info, 0, sizeof(file_info));
-	px4debug(eCOMMITF, "sd card logger init ok\r\n");
-	_module_state = ENABLE;
+	_state_before_stop = _module_state;
+	_module_state = DISABLE;
 }
 
-void px4_sd_card_logger_add_new_logger(uint32_t sampleTime, uint32_t sigCnt, char * file_name)
+/*****************************************************/
+void _px4_sd_card_logger_resume()
 {
-	file_info.rbuff.read = 0;
-	file_info.rbuff.write = 0;
-	file_info.sample_time = sampleTime;
-	file_info.sig_cnt = (sigCnt > SIGNAL_MAX_CNT) ? SIGNAL_MAX_CNT : sigCnt;
+	_module_state = _state_before_stop;
+}
 
-	strncpy(file_info.filename_prefix, file_name, FILENAME_MAX_LENGTH - 4); // 3 chars for id, 1 for termination
+/*****************************************************/
+uint32_t _get_next_id_for_logfile(char * filename_prefix)
+{
+	uint32_t ret = 0;
+	FRESULT res;
+	DIR dir;
+	static FILINFO fno;
+	char* path = "/";
+	char buffArr[200];
 
-	if (_create_new_log_file(&file_info) == ERROR)
+	res = f_opendir(&dir, path); /* Open the directory */
+	if (res == FR_OK)
 	{
-		px4debug(eCOMMITF, "#Error creating new log file... Disabling SD Card module! \r\n");
-		_module_state = DISABLE;
+		for (;;)
+		{
+			res = f_readdir(&dir, &fno); /* Read a directory item */
+			if (res != FR_OK || fno.fname[0] == 0)
+				break; /* Break on error or end of dir */
+			if ((fno.fattrib & AM_DIR) == 0)
+			{
+				/* It is a file. */
+				sprintf(buffArr, "%s", fno.fname);
+
+				// compare strings
+				uint32_t a = strlen(filename_prefix);
+				uint32_t b = strlen(buffArr);
+
+				if (strncmp(filename_prefix, buffArr, a) == 0)
+				{
+					if ((b - a) > 0)
+					{
+						uint32_t t = atoi(&buffArr[a]);
+						if (t >= ret)
+						{
+							ret = t + 1;
+						}
+					}
+				}
+			}
+		}
+		f_closedir(&dir);
 	}
 	else
 	{
-		px4debug(eCOMMITF, "new logger %s created \r\n", file_info.filename);
+		px4debug(eCOMMITF, "open dir failed \r\n");
 	}
+
+	return ret;
 }
 
-void px4_sd_card_logger_add_val(float * values)
+/*****************************************************/
+ErrorStatus _create_new_log_file()
 {
-	if (_module_state == DISABLE)
+	px4debug(eCOMMITF, "sdcard. create new logger file ... ");
+
+	FRESULT res = 0;
+	uint32_t log_idx;
+	UINT writtenbytes;
+
+	log_idx = _get_next_id_for_logfile(file_info.filename_prefix);
+	snprintf(file_info.filename, 32, "%s%03d", file_info.filename_prefix, (int) log_idx);
+
+	sd_card_file_meta_info_st mInfo = { file_info.sig_cnt, file_info.sample_time };
+
+	// create and open new log file
+	res = f_open(&file_info.fobj, file_info.filename, FA_CREATE_ALWAYS | FA_WRITE);
+
+	// write number of signals sampling time of block as meta info
+	res |= f_write(&file_info.fobj, &mInfo, sizeof(mInfo), &writtenbytes);
+	f_sync(&(file_info.fobj));
+
+	// check results
+	if ((res != FR_OK) || (writtenbytes != sizeof(mInfo)))
 	{
-		return;
-	}
-
-	uint32_t ts = tic();
-
-	// check if cycle time elapsed
-	if ((ts / 1000) < (file_info.sample_time * file_info.sample_cnt))
-	{
-		return;
-	}
-
-	// init counter of samples for exact timing for adding values according to sampling time
-	if (file_info.sample_cnt == 0)
-	{
-		file_info.sample_cnt = (uint32_t) (ts / 1000) / file_info.sample_time;
-	}
-
-	if (ring_buffer_free_space(&(file_info.rbuff)) > 0)
-	{
-		file_info.sample_cnt++;
-		file_info.tick_last_call = ts / 1000;
-
-		uint32_t idx = file_info.rbuff.write;
-
-		memcpy(file_info.rbuff.buff[idx].val, values, sizeof(float) * file_info.sig_cnt);
-		file_info.rbuff.buff[idx].timestamp = ts;
-
-		file_info.rbuff.write = ++idx % RING_BUFF_SIZE;
+		px4debug(eCOMMITF, "#Error open file, or error at writing file meta block\r\n");
 	}
 	else
 	{
-		px4debug(eCOMMITF, "sd card logger. not enough free buffer space\r\n");
+		px4debug(eCOMMITF, "done \r\n");
 	}
+
+	f_close(&file_info.fobj);
+
+	return (res == FR_OK) ? SUCCESS : ERROR;
 }
 
-void px4_sd_card_logger_task(void)
-{
-	_px4_sd_card_logger_process_cmd();
-
-	if (_module_state == ENABLE)
-	{
-		_write_to_sd_card();
-	}
-}
-
-static void _write_to_sd_card()
+/*****************************************************/
+void _write_to_sd_card()
 {
 	uint32_t idxRead, idxWrite;
 
@@ -226,7 +244,8 @@ static void _write_to_sd_card()
 	}
 }
 
-static uint32_t _sd_card_logger_init_sdcard()
+/*****************************************************/
+uint32_t _sd_card_logger_init_sdcard()
 {
 // Link the micro SD disk I/O driver
 	if (FATFS_LinkDriver(&SD_Driver, _drive_path) == 0)
@@ -234,7 +253,7 @@ static uint32_t _sd_card_logger_init_sdcard()
 		px4debug(eCOMMITF, "SD Drive %s linked \r\n", _drive_path);
 	}
 
-// Register the file system object to the FatFs module
+	// Register the file system object to the FatFs module
 	if (f_mount(&_file_system, (TCHAR const*) _drive_path, 0) != FR_OK)
 	{
 		/* FatFs Initialization Error */
@@ -244,91 +263,8 @@ static uint32_t _sd_card_logger_init_sdcard()
 	return SUCCESS;
 }
 
-static ErrorStatus _create_new_log_file()
-{
-	px4debug(eCOMMITF, "sdcard. create new logger file ... ");
-
-	FRESULT res = 0;
-	uint32_t log_idx;
-	UINT writtenbytes;
-
-	log_idx = _get_next_id_for_logfile(file_info.filename_prefix);
-	snprintf(file_info.filename, 32, "%s%03d", file_info.filename_prefix, (int) log_idx);
-
-	sd_card_file_meta_info_st mInfo = { file_info.sig_cnt, file_info.sample_time };
-
-	// create and open new log file
-	res = f_open(&file_info.fobj, file_info.filename, FA_CREATE_ALWAYS | FA_WRITE);
-
-	// write number of signals sampling time of block as meta info
-	res |= f_write(&file_info.fobj, &mInfo, sizeof(mInfo), &writtenbytes);
-	f_sync(&(file_info.fobj));
-
-	// check results
-	if ((res != FR_OK) || (writtenbytes != sizeof(mInfo)))
-	{
-		px4debug(eCOMMITF, "#Error open file, or error at writing file meta block\r\n");
-	}
-	else
-	{
-		px4debug(eCOMMITF, "done \r\n");
-	}
-
-	f_close(&file_info.fobj);
-
-	return (res == FR_OK) ? SUCCESS : ERROR;
-}
-
-static uint32_t _get_next_id_for_logfile(char * filename_prefix)
-{
-	uint32_t ret = 0;
-	FRESULT res;
-	DIR dir;
-	static FILINFO fno;
-	char* path = "/";
-	char buffArr[200];
-
-	res = f_opendir(&dir, path); /* Open the directory */
-	if (res == FR_OK)
-	{
-		for (;;)
-		{
-			res = f_readdir(&dir, &fno); /* Read a directory item */
-			if (res != FR_OK || fno.fname[0] == 0)
-				break; /* Break on error or end of dir */
-			if ((fno.fattrib & AM_DIR) == 0)
-			{
-				/* It is a file. */
-				sprintf(buffArr, "%s", fno.fname);
-
-				// compare strings
-				uint32_t a = strlen(filename_prefix);
-				uint32_t b = strlen(buffArr);
-
-				if (strncmp(filename_prefix, buffArr, a) == 0)
-				{
-					if ((b - a) > 0)
-					{
-						uint32_t t = atoi(&buffArr[a]);
-						if (t >= ret)
-						{
-							ret = t + 1;
-						}
-					}
-				}
-			}
-		}
-		f_closedir(&dir);
-	}
-	else
-	{
-		px4debug(eCOMMITF, "open dir failed \r\n");
-	}
-
-	return ret;
-}
-
-static void _copy_file_name_from_cmd(const char * cmd, char * file)
+/*****************************************************/
+void _copy_file_name_from_cmd(const char * cmd, char * file)
 {
 	while (*cmd != 0 && *cmd != ' ')
 		cmd++;
@@ -344,6 +280,7 @@ static void _copy_file_name_from_cmd(const char * cmd, char * file)
 	*file = 0;
 }
 
+/*****************************************************/
 void px4_sd_card_logger_add_user_cmd(const char * cmd)
 {
 	memcpy(_usercmd, cmd, strlen(cmd) + 1);
@@ -351,194 +288,8 @@ void px4_sd_card_logger_add_user_cmd(const char * cmd)
 	px4debug(eCOMMITF, "SDCARD: command received \r\n");
 }
 
-void _px4_sd_card_logger_process_cmd()
-{
-	if (_new_command_received == 0)
-	{
-		return;
-	}
-
-	_px4_sd_card_logger_stop();
-
-	char path[20];
-
-	if (strncmp(_usercmd, "list all", strlen("list all")) == 0)
-	{
-		px4debug(eCOMMITF, "--- file list start ---\r\n");
-		_scan_files("/");
-		px4debug(eCOMMITF, "--- file list end ---\r\n");
-	}
-	else if (strncmp(_usercmd, "list ", strlen("list ")) == 0)
-	{
-		path[0] = '/';
-		_copy_file_name_from_cmd(_usercmd, &path[1]);
-		_list_single_file(path);
-	}
-	else if (strncmp(_usercmd, "del all", strlen("del all")) == 0)
-	{
-		px4debug(eCOMMITF, "==> Delete all files found on sd card ...");
-		_delete_all_files();
-		px4debug(eCOMMITF, " done \r\n");
-	}
-	else if (strncmp(_usercmd, "del ", strlen("del ")) == 0)
-	{
-		path[0] = '/';
-		_copy_file_name_from_cmd(_usercmd, &path[1]);
-
-		px4debug(eCOMMITF, "==> deleting file ");
-		px4debug(eCOMMITF, path);
-		px4debug(eCOMMITF, "... ");
-
-		if (f_unlink(path) != FR_OK)
-		{
-			px4debug(eCOMMITF, "Error \r\n");
-		}
-		else
-		{
-			px4debug(eCOMMITF, " ok\r\n");
-		}
-	}
-//---------------------------------------------------------------------------
-	else
-	{
-		px4debug(eCOMMITF, "UNKNOWN SD command received! Type <help> for more information\r\n");
-	}
-
-	_new_command_received = 0;
-	_px4_sd_card_logger_resume();
-}
-
-static FRESULT _scan_files(char* path)
-{
-	FRESULT res;
-	FIL f;
-	DIR dir;
-
-	res = f_opendir(&dir, path); /* Open the directory */
-	if (res == FR_OK)
-	{
-		for (;;)
-		{
-			FILINFO fno;
-			res = f_readdir(&dir, &fno); /* Read a directory item */
-			if (res != FR_OK || fno.fname[0] == 0)
-			{
-				px4debug(eCOMMITF, "end of files \r\n");
-				break; /* Break on error or end of dir */
-			}
-
-			res = f_open(&f, fno.fname, FA_READ);
-			f_sync(&f);
-
-			if (res == FR_OK)
-			{
-				sd_card_file_meta_info_st mInfo = { 0, 0 };
-
-				UINT bytesread = 0;
-				res = f_read(&f, &mInfo, sizeof(mInfo), &bytesread);
-
-				if ((res == FR_OK) && (bytesread == sizeof(mInfo)))
-				{
-					uint32_t sampletime = mInfo.sample_time;
-					uint32_t signal_cnt = mInfo.signal_cnt;
-
-					uint32_t timeline = (fno.fsize - 8) / (8 + signal_cnt * 4);
-					timeline = (timeline * sampletime) / 1000;
-					px4debug(eCOMMITF, "/%s|%i|%i|%i|%i|%i\r\n", fno.fname, (int) fno.fsize, (int) (timeline / 60),
-							(int) (timeline - (timeline / 60) * 60), (int) signal_cnt, (int) sampletime);
-				}
-				else
-				{
-					px4debug(eCOMMITF, "Error read meta data res:%d bytesread%d \r\n", res, bytesread);
-				}
-
-				f_close(&f);
-			}
-			else if (res == FR_LOCKED)
-			{
-				px4debug(eCOMMITF, "Error. File is in use: %s \r\n", fno.fname);
-			}
-			else
-			{
-				px4debug(eCOMMITF, "error on f_open, code:%d \r\n", res);
-			}
-
-		}
-
-		f_closedir(&dir);
-	}
-	else
-	{
-		px4debug(eCOMMITF, "open directory failed\r\n");
-	}
-
-	return res;
-}
-
-static void _px4_sd_card_logger_stop()
-{
-	_state_before_stop = _module_state;
-	_module_state = DISABLE;
-}
-
-static void _px4_sd_card_logger_resume()
-{
-	_module_state = _state_before_stop;
-}
-
-//========================================================================================
-// walks through the disk and deletes all found files
-//========================================================================================
-static void _delete_all_files()
-{
-	FRESULT res;
-	char buff[50];
-	UINT i, j;
-	DIR dir;
-	FILINFO fno;
-
-	_px4_sd_card_logger_stop();
-
-	strcpy(buff, "/");
-
-	res = f_opendir(&dir, buff);
-	if (res == FR_OK)
-	{
-		for (i = 0; buff[i]; i++)
-			;
-		for (;;)
-		{
-			res = f_readdir(&dir, &fno);
-			if (res != FR_OK || !fno.fname[0])
-				break;
-
-			if (FF_FS_RPATH && fno.fname[0] == '.')
-				continue;
-
-			j = 0;
-			do
-				buff[i + j] = fno.fname[j];
-			while (fno.fname[j++]);
-
-			if (fno.fattrib & AM_DIR)
-			{
-				continue;
-			}
-
-			res = f_unlink(buff);
-			if (res != FR_OK)
-			{
-				px4debug(eCOMMITF, "Error! ");
-			}
-		}
-		f_closedir(&dir);
-	}
-
-	_create_new_log_file();
-	_px4_sd_card_logger_resume();
-}
-
-static void _list_single_file(char * path)
+/*****************************************************/
+void _list_single_file(char * path)
 {
 	px4debug(eCOMMITF, "SDCARD: start list single file \r\n");
 	_px4_sd_card_logger_stop();
@@ -613,4 +364,263 @@ static void _list_single_file(char * path)
 	f_close(&f);
 
 	_px4_sd_card_logger_resume();
+}
+
+//========================================================================================
+// walks through the disk and deletes all found files
+//========================================================================================
+void _delete_all_files()
+{
+	FRESULT res;
+	char buff[50];
+	UINT i, j;
+	DIR dir;
+	FILINFO fno;
+
+	_px4_sd_card_logger_stop();
+
+	strcpy(buff, "/");
+
+	res = f_opendir(&dir, buff);
+	if (res == FR_OK)
+	{
+		for (i = 0; buff[i]; i++)
+			;
+		for (;;)
+		{
+			res = f_readdir(&dir, &fno);
+			if (res != FR_OK || !fno.fname[0])
+				break;
+
+			if (FF_FS_RPATH && fno.fname[0] == '.')
+				continue;
+
+			j = 0;
+			do
+				buff[i + j] = fno.fname[j];
+			while (fno.fname[j++]);
+
+			if (fno.fattrib & AM_DIR)
+			{
+				continue;
+			}
+
+			res = f_unlink(buff);
+			if (res != FR_OK)
+			{
+				px4debug(eCOMMITF, "Error! ");
+			}
+		}
+		f_closedir(&dir);
+	}
+
+	_create_new_log_file();
+	_px4_sd_card_logger_resume();
+}
+
+
+void _px4_sd_card_logger_process_cmd()
+{
+	if (_new_command_received == 0)
+	{
+		return;
+	}
+
+	_px4_sd_card_logger_stop();
+
+	char path[20];
+
+	if (strncmp(_usercmd, "list all", strlen("list all")) == 0)
+	{
+		px4debug(eCOMMITF, "--- file list start ---\r\n");
+		_scan_files("/");
+		px4debug(eCOMMITF, "--- file list end ---\r\n");
+	}
+	else if (strncmp(_usercmd, "list ", strlen("list ")) == 0)
+	{
+		path[0] = '/';
+		_copy_file_name_from_cmd(_usercmd, &path[1]);
+		_list_single_file(path);
+	}
+	else if (strncmp(_usercmd, "del all", strlen("del all")) == 0)
+	{
+		px4debug(eCOMMITF, "==> Delete all files found on sd card ...");
+		_delete_all_files();
+		px4debug(eCOMMITF, " done \r\n");
+	}
+	else if (strncmp(_usercmd, "del ", strlen("del ")) == 0)
+	{
+		path[0] = '/';
+		_copy_file_name_from_cmd(_usercmd, &path[1]);
+
+		px4debug(eCOMMITF, "==> deleting file ");
+		px4debug(eCOMMITF, path);
+		px4debug(eCOMMITF, "... ");
+
+		if (f_unlink(path) != FR_OK)
+		{
+			px4debug(eCOMMITF, "Error \r\n");
+		}
+		else
+		{
+			px4debug(eCOMMITF, " ok\r\n");
+		}
+	}
+	else
+	{
+		px4debug(eCOMMITF, "UNKNOWN SD command received! Type <help> for more information\r\n");
+	}
+
+	_new_command_received = 0;
+	_px4_sd_card_logger_resume();
+}
+
+FRESULT _scan_files(char* path)
+{
+	FRESULT res;
+	FIL f;
+	DIR dir;
+
+	res = f_opendir(&dir, path); /* Open the directory */
+	if (res == FR_OK)
+	{
+		for (;;)
+		{
+			FILINFO fno;
+			res = f_readdir(&dir, &fno); /* Read a directory item */
+			if (res != FR_OK || fno.fname[0] == 0)
+			{
+				px4debug(eCOMMITF, "end of files \r\n");
+				break; /* Break on error or end of dir */
+			}
+
+			res = f_open(&f, fno.fname, FA_READ);
+			f_sync(&f);
+
+			if (res == FR_OK)
+			{
+				sd_card_file_meta_info_st mInfo = { 0, 0 };
+
+				UINT bytesread = 0;
+				res = f_read(&f, &mInfo, sizeof(mInfo), &bytesread);
+
+				if ((res == FR_OK) && (bytesread == sizeof(mInfo)))
+				{
+					uint32_t sampletime = mInfo.sample_time;
+					uint32_t signal_cnt = mInfo.signal_cnt;
+
+					uint32_t timeline = (fno.fsize - 8) / (8 + signal_cnt * 4);
+					timeline = (timeline * sampletime) / 1000;
+					px4debug(eCOMMITF, "/%s|%i|%i|%i|%i|%i\r\n", fno.fname, (int) fno.fsize, (int) (timeline / 60),
+							(int) (timeline - (timeline / 60) * 60), (int) signal_cnt, (int) sampletime);
+				}
+				else
+				{
+					px4debug(eCOMMITF, "Error read meta data res:%d bytesread%d \r\n", res, bytesread);
+				}
+
+				f_close(&f);
+			}
+			else if (res == FR_LOCKED)
+			{
+				px4debug(eCOMMITF, "Error. File is in use: %s \r\n", fno.fname);
+			}
+			else
+			{
+				px4debug(eCOMMITF, "error on f_open, code:%d \r\n", res);
+			}
+
+		}
+
+		f_closedir(&dir);
+	}
+	else
+	{
+		px4debug(eCOMMITF, "open directory failed\r\n");
+	}
+
+	return res;
+}
+
+
+
+
+
+void px4_sd_card_logger_task(void)
+{
+	_px4_sd_card_logger_process_cmd();
+
+	if (_module_state == ENABLE)
+	{
+		_write_to_sd_card();
+	}
+}
+
+void px4_sd_card_logger_add_val(float * values)
+{
+	if (_module_state == DISABLE)
+	{
+		return;
+	}
+
+	uint32_t ts = tic();
+
+	// check if cycle time elapsed
+	if ((ts / 1000) < (file_info.sample_time * file_info.sample_cnt))
+	{
+		return;
+	}
+
+	// init counter of samples for exact timing for adding values according to sampling time
+	if (file_info.sample_cnt == 0)
+	{
+		file_info.sample_cnt = (uint32_t) (ts / 1000) / file_info.sample_time;
+	}
+
+	if (ring_buffer_free_space(&(file_info.rbuff)) > 0)
+	{
+		file_info.sample_cnt++;
+		file_info.tick_last_call = ts / 1000;
+
+		uint32_t idx = file_info.rbuff.write;
+
+		memcpy(file_info.rbuff.buff[idx].val, values, sizeof(float) * file_info.sig_cnt);
+		file_info.rbuff.buff[idx].timestamp = ts;
+
+		file_info.rbuff.write = ++idx % RING_BUFF_SIZE;
+	}
+	else
+	{
+		px4debug(eCOMMITF, "sd card logger. not enough free buffer space\r\n");
+	}
+}
+
+void px4_sd_card_logger_add_new_logger(uint32_t sampleTime, uint32_t sigCnt, char * file_name)
+{
+	file_info.rbuff.read = 0;
+	file_info.rbuff.write = 0;
+	file_info.sample_time = sampleTime;
+	file_info.sig_cnt = (sigCnt > SIGNAL_MAX_CNT) ? SIGNAL_MAX_CNT : sigCnt;
+
+	strncpy(file_info.filename_prefix, file_name, FILENAME_MAX_LENGTH - 4); // 3 chars for id, 1 for termination
+
+	if (_create_new_log_file(&file_info) == ERROR)
+	{
+		px4debug(eCOMMITF, "#Error creating new log file... Disabling SD Card module! \r\n");
+		_module_state = DISABLE;
+	}
+	else
+	{
+		px4debug(eCOMMITF, "new logger %s created \r\n", file_info.filename);
+	}
+}
+
+void px4_sd_card_logger_init()
+{
+	_sd_card_logger_init_sdcard();
+	memset(&file_info, 0, sizeof(file_info));
+	px4debug(eCOMMITF, "sd card logger init ok\r\n");
+	_module_state = ENABLE;
+
+	px4_sd_card_logger_add_new_logger(100, 10, "DATA_");
 }

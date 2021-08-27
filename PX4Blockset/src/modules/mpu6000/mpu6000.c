@@ -163,23 +163,23 @@ static void mpu6000_init_sensor()
 
 		HAL_Delay(100);
 
-		// wite settings to register
-		mpu6000_reg_set(PWR_MGMT_1, 	MPU_CLK_SEL_PLLGYROZ); 	HAL_Delay(10);
-		mpu6000_reg_set(USER_CTRL, 		BIT_I2C_IF_DIS);		HAL_Delay(10);
-		mpu6000_reg_set(PWR_MGMT_2, 	0x00);					HAL_Delay(10);
+		// write settings to register
+		mpu6000_reg_set(PWR_MGMT_1, 			MPU_CLK_SEL_PLLGYROZ); 	HAL_Delay(10);
+		mpu6000_reg_set(USER_CTRL, 				BIT_I2C_IF_DIS);		HAL_Delay(10);
+		mpu6000_reg_set(PWR_MGMT_2, 			0x00);					HAL_Delay(10);
 		mpu6000_reg_set(MPU6000_SMPLRT_DIV, 	_settings.smplrt_cfg);	HAL_Delay(10);
 		mpu6000_reg_set(MPU6000_CFG, 			_settings.dlpf_cfg);	HAL_Delay(10);
 		mpu6000_reg_set(MPU6000_GYRO_CONFIG, 	_settings.gyro_range);	HAL_Delay(10);
 		mpu6000_reg_set(MPU6000_ACCEL_CONFIG,	_settings.accel_range);	HAL_Delay(10);
 
 		// read settings from sensor
-		r1 = mpu6000_reg_get(PWR_MGMT_1); 	HAL_Delay(10);
-		r2 = mpu6000_reg_get(USER_CTRL);	HAL_Delay(10);
-		r3 = mpu6000_reg_get(PWR_MGMT_2);	HAL_Delay(10);
+		r1 = mpu6000_reg_get(PWR_MGMT_1); 			HAL_Delay(10);
+		r2 = mpu6000_reg_get(USER_CTRL);			HAL_Delay(10);
+		r3 = mpu6000_reg_get(PWR_MGMT_2);			HAL_Delay(10);
 		r4 = mpu6000_reg_get(MPU6000_SMPLRT_DIV);	HAL_Delay(10);
 		r5 = mpu6000_reg_get(MPU6000_CFG);			HAL_Delay(10);
 		r6 = mpu6000_reg_get(MPU6000_GYRO_CONFIG);	HAL_Delay(10);
-		r7 = mpu6000_reg_get(MPU6000_ACCEL_CONFIG);
+		r7 = mpu6000_reg_get(MPU6000_ACCEL_CONFIG); HAL_Delay(10);
 
 		// check if settings were set correct
 		if (r1 != MPU_CLK_SEL_PLLGYROZ)
@@ -207,7 +207,7 @@ static void mpu6000_init_sensor()
 				&& (r4 == _settings.smplrt_cfg) && (r5 == _settings.dlpf_cfg) && (r6 == _settings.gyro_range)
 				&& (r7 == _settings.accel_range))
 		{
-			break;	// correct settings were stored
+			break;	// settings were stored correctly
 		}
 
 		HAL_Delay(100);

@@ -38,11 +38,11 @@ typedef enum
 {
 	ePrioIdle  			= osPriorityIdle,
 	ePrioLow 			= osPriorityLow,
-	ePrioBelowNormal	= osPriorityBelowNormal,
+	//ePrioBelowNormal	= osPriorityBelowNormal,
 	ePrioNormal 		= osPriorityNormal,
-	ePrioAboveNormal 	= osPriorityAboveNormal,
+	//ePrioAboveNormal 	= osPriorityAboveNormal,
 	ePrioHigh			= osPriorityHigh,
-	ePrioRealTime		= osPriorityRealtime,
+	//ePrioRealTime		= osPriorityRealtime,
 	ePrioError 			= osPriorityError
 }eTaskPrio;
 
