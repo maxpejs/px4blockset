@@ -44,8 +44,8 @@ switch hookMethod
                             status = customDos('makeClean.bat');
                             if(status == 2)
                                 % compile error
-                                msgbox('Compilation error. See command window for more informations', ...
-                                    'Compilation terminated','error');
+                                msgbox(['makeClean.bat error at' modelName '. See command window for more informations. ', ...
+                                    'Compilation terminated'],'error');
                                 return;
                             end
                             % clear flag
@@ -59,8 +59,8 @@ switch hookMethod
 
                     if(status == 2)
                         % compile error
-                        msgbox('Compilation error. See command window for more informations', ...
-                            'Compilation terminated','error');
+                        msgbox(['makeBuild.bat error at ' modelName '. See command window for more informations. ', ...
+                            'Compilation terminated'],'error');
                         return;
                     end
                     
@@ -115,7 +115,7 @@ filenameList{length(filenameList) + 1} = [path 'stm32f4xx.h'];
 filenameList{length(filenameList) + 1} = [path 'stm32f427xx.h'];
 filenameList{length(filenameList) + 1} = [path 'system_stm32f4xx.h'];
 
-path = [basePath 'src\drivers\CMSIS\Device\ST\STM32F4xx\Source\Templates\'];
+path = [basePath 'src\drivers\CMSIS\Device\ST\STM32F4xx\Source\'];
 filenameList{length(filenameList) + 1} = [path 'system_stm32f4xx.c'];
 
 path = [basePath 'src\drivers\STM32F4xx_HAL_Driver\'];
@@ -156,8 +156,7 @@ filenameList{length(filenameList) + 1} = [path 'inc\stm32f4xx_hal_sd.h'];
 filenameList{length(filenameList) + 1} = [path 'src\stm32f4xx_hal_sd.c'];
 filenameList{length(filenameList) + 1} = [path 'inc\stm32f4xx_ll_sdmmc.h'];
 filenameList{length(filenameList) + 1} = [path 'src\stm32f4xx_ll_sdmmc.c'];
-
-
+% filenameList{length(filenameList) + 1} = [path 'src\stm32f4xx_hal_timebase_tim.c'];
 
 % module source files
 path = [basePath 'src\modules\'];
@@ -213,12 +212,18 @@ filenameList{length(filenameList) + 1} = [path 'tasks\tasks.c'];
 filenameList{length(filenameList) + 1} = [path 'sd_card_logger\sd_card_logger.h'];
 filenameList{length(filenameList) + 1} = [path 'sd_card_logger\sd_card_logger.c'];
 
-
 filenameList{length(filenameList) + 1} = [basePath 'src\third party\protocol.h'];
-filenameList{length(filenameList) + 1} = [basePath 'src\third party\board\stm324xg_eval_sd.h'];
-filenameList{length(filenameList) + 1} = [basePath 'src\third party\board\stm324xg_eval_sd.c'];
 
-filenameList{length(filenameList) + 1} = [basePath 'src\third party\FreeRTOS\stm32f4xx_hal_timebase_tim.c'];
+path = [basePath 'src\target\'];
+filenameList{length(filenameList) + 1} = [path 'ffconf.h'];
+filenameList{length(filenameList) + 1} = [path 'sd_diskio.c'];
+filenameList{length(filenameList) + 1} = [path 'sd_diskio.h'];
+filenameList{length(filenameList) + 1} = [path 'stm324xg_eval_sd.h'];
+filenameList{length(filenameList) + 1} = [path 'stm324xg_eval_sd.c'];
+
+% filenameList{length(filenameList) + 1} = [basePath 'src\third party\FatFs\Target\stm324xg_eval_sd.h'];
+% filenameList{length(filenameList) + 1} = [basePath 'src\third party\FatFs\Target\stm324xg_eval_sd.c'];
+
 
 %% startup and toolchain files
 path = [basePath 'tools\px4_toolchain\'];

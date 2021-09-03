@@ -24,5 +24,4 @@ end
 rmdir('slprj', 's');
 c = toc(c);
 disp(['Block (gen+compile) tests took: ' num2str(c) ' s']);
-
 msgbox('Tests OK', '', 'none');

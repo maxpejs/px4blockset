@@ -46,7 +46,7 @@
 			%assign u = LibBlockInputSignal(signal, "", "", 0)
 			temparr[%<signal>] = %<u>;
 		%endforeach
-			px4_sd_card_logger_add_val(0, temparr);
+			px4_sd_card_logger_add_val(temparr);
         }
 	%endif
 %endfunction

@@ -85,7 +85,6 @@ CFLAGS += -DDEBUG
 
 #Includes
 CFLAGS += -IFatFs/Core
-CFLAGS += -IFatFs/Drivers
 
 CFLAGS += -IFreeRTOS/Source/CMSIS_RTOS
 CFLAGS += -IFreeRTOS/Source/include
