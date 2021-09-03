@@ -1,7 +1,7 @@
 #include "sd_card_logger.h"
 #include <logger_ring_buffer.h>
 #include <FatFs/Core/ff_gen_drv.h>
-#include <FatFs/Drivers/sd_diskio.h>
+#include <FatFs/Target/sd_diskio.h>
 #include <cmsis_os.h>
 
 #include <stdio.h>
