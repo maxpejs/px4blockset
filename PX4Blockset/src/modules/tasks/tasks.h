@@ -7,9 +7,7 @@
 #include <inttypes.h>
 #include <cmsis_os.h>
 
-/**
-*
-*/
+
 typedef void (* callback_t)();
 
 #define DEFAULT_STACK_SIZE 		configMINIMAL_STACK_SIZE
@@ -62,6 +60,6 @@ void px4_tasks_initialize();
 
 void px4_tasks_run();
 
-void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTime, uint32_t stacksize, uint32_t taskPrio);
+void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTimeMS, uint32_t stacksize, uint32_t taskPrio);
 
 QueueHandle_t getQueueHandleByEnum(eTaskID id);

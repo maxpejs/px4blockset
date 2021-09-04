@@ -35,13 +35,13 @@ const char *  getTaskNameByEnum(eTaskID id)
 	}
 }
 
-void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTime, uint32_t stacksize, uint32_t taskPrio)
+void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTimeMS, uint32_t stacksize, uint32_t taskPrio)
 {
 	_tasklist[id].taskID 		= id;
 	_tasklist[id].taskFunction 	= func;
 	_tasklist[id].stackSize 	= (stacksize < configMINIMAL_STACK_SIZE) ? configMINIMAL_STACK_SIZE : stacksize;
 	_tasklist[id].taskPrio 		= taskPrio;
-	_tasklist[id].sampleTime 	= sampleTime;
+	_tasklist[id].sampleTime 	= sampleTimeMS;
 
 	const char * taskname = getTaskNameByEnum(id);
 	size_t name_length = min(strlen(getTaskNameByEnum(id)) + 1, TASK_NAME_MAX_LENGTH);
