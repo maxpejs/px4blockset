@@ -136,7 +136,7 @@ void UsageFault_Handler(void)
  */
 void DebugMon_Handler(void)
 {
-	comm_itf_print_string("DebugMon_Handler Fault occured! \n");
+	comm_itf_print_string("DebugMon_Handler Fault occurred!\n");
 	while (1)
 	{
 		error_handler(0);
