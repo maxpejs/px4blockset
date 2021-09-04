@@ -1,5 +1,6 @@
 #include "comm_itf.h"
 #include <stdarg.h>
+#include "tasks.h"
 
 // Commands
 #define MPU6000_TOGLE_LOG_ACC  		"log acc"
@@ -23,7 +24,8 @@
 
 typedef enum
 {
-	COMPLETED = 0U, NOT_COMPLETED = !COMPLETED
+	COMPLETED = 0U,
+	NOT_COMPLETED = !COMPLETED
 } completed_status;
 
 /*
@@ -47,9 +49,9 @@ typedef struct
 /*
  * Forward Declarations
  */
-static void process_received_cmd(void);
-static void check_rx_buff(void);
-static void print_help();
+void process_received_cmd(void);
+void check_rx_buff(void);
+void print_help();
 void print_task_load();
 
 void process_cyclic_print(void);
@@ -69,8 +71,8 @@ static uint32_t _parse_idx = 0;
 
 UART_HandleTypeDef CommUart;
 
-static TaskStatus_t last_task_state [20];
-static uint64_t last_total_tick_counter;
+TaskStatus_t last_task_state [eMaxCount];
+uint32_t last_total_tick_counter;
 
 void send_over_uart(const char * str)
 {
@@ -129,7 +131,7 @@ void comm_itf_init()
 	px4debug("\n\n\ncomm module init ok \r\n");
 }
 
-static void check_rx_buff()
+void check_rx_buff()
 {
 	while (_rx_buff[_rx_idx] != 0)
 	{
@@ -386,23 +388,22 @@ void print_task_load()
 {
 	static uint32_t firstcall = 1;
 
-	TaskStatus_t val[20];
+	TaskStatus_t val[eMaxCount];
 	uint32_t total = 1;
-	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, 20, &total);
+	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, eMaxCount, &total);
 
 	if(firstcall)
 	{
 		firstcall = 0;
 		memcpy(last_task_state, val, sizeof(val));
 		last_total_tick_counter = total;
-		return;
 	}
 
-	px4debug("\r\n\r\n");
-	px4debug("=== TASK INFORMATION===\r\n");
-	px4debug("----------------------- \r\n");
-	px4debug("%-20s%-20s%-10s", "Task name", "|Stack watermark", "|CPU(%)\r\n");
-	px4debug("--------------------------------------------------\r\n");
+	px4debug("\n\n");
+	px4debug("=== TASK LIST ===\n");
+	px4debug("----------------------- \n");
+	px4debug("%-12s%-20s%-10s", "Task name", "|Stack watermark", "|CPU(%) \n");
+	px4debug("--------------------------------------------------\n");
 
 	// print new calculated values since last call
 	for (unsigned int i = 0; i < size; i++)
@@ -412,19 +413,19 @@ void print_task_load()
 		if(ind == -1)
 			continue;
 
-		px4debug("%-20s|%-20d|%-10d\r\n", val[i].pcTaskName, val[i].usStackHighWaterMark,
+		px4debug("%-12s|%-20d|%-10d\r\n", val[i].pcTaskName, val[i].usStackHighWaterMark,
 				((val[i].ulRunTimeCounter - last_task_state[ind].ulRunTimeCounter) * 100) / (total - last_total_tick_counter));
 	}
-	px4debug("--------------------------------------------------\r\n");
+	px4debug("--------------------------------------------------\n");
 
-	px4debug("===== HEAP STATE =======\r\n");
+	px4debug("===== HEAP STATE =======\n");
 	size_t fr = xPortGetFreeHeapSize();
 	size_t mfr = xPortGetMinimumEverFreeHeapSize();
 
-	px4debug("free: %d\r\n", fr);
-	px4debug("min free: %d\r\n", mfr);
+	px4debug("free: %d\n", fr);
+	px4debug("min free: %d\n", mfr);
 
-	px4debug("-------------------------\r\n");
+	px4debug("-------------------------\n");
 
 	memcpy(last_task_state, val, sizeof(val));
 	last_total_tick_counter = total;
