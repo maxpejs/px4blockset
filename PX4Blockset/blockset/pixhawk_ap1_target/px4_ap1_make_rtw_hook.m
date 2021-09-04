@@ -304,7 +304,7 @@ try
     f = fopen('makeAll.bat', 'w');
     writeHeaderToFile(f, 'REM Batch file for run "make all"\n');
     makeTooPath = [basePath 'tools\GnuWin32\bin\make.exe'];
-    cmd = [makeTooPath ' --makefile=Makefile all'];
+    cmd = [makeTooPath ' -j8 --makefile=Makefile all'];
     cmd = protectPathSeparator(cmd);
     fprintf(f, cmd);
     fclose(f);
@@ -320,7 +320,7 @@ try
     f = fopen('makeBuild.bat', 'w');
     writeHeaderToFile(f, 'REM Batch file for run "make build"\n');
     makeTooPath = [basePath 'tools\GnuWin32\bin\make.exe'];
-    cmd = [makeTooPath ' --makefile=Makefile build'];
+    cmd = [makeTooPath ' -j8 --makefile=Makefile build'];
     cmd = protectPathSeparator(cmd);
     fprintf(f, cmd);
     fclose(f);
@@ -352,7 +352,7 @@ try
     f = fopen('makeUpload.bat', 'w');
     writeHeaderToFile(f, 'REM Batch file for uploading created px4 image\n');
     makeTooPath = [basePath 'tools\GnuWin32\bin\make.exe'];
-    cmd = [makeTooPath ' --makefile=Makefile upload'];
+    cmd = [makeTooPath ' -j8 --makefile=Makefile upload'];
     cmd = protectPathSeparator(cmd);
     fprintf(f, cmd);
     fclose(f);

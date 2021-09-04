@@ -165,7 +165,7 @@ $(DMP) : $(ELF)
 	@echo Creating memory dump: $(DMP)
 	$(OBJDUMP) -x --syms $< > $@
 
-report :
+report : $(ELF)
 	@echo 
 	@echo ===================================================================
 #	@echo Objects size:
