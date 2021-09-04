@@ -33,7 +33,7 @@ void comm_itf_task_function();
 /**
  *
  */
-void px4debug(eTaskID id, char * MESSAGE, ...);
+void px4debug(char * MESSAGE, ...);
 
 /* print functions */
 void comm_itf_print_string(const char * str);

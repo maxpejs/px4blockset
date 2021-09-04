@@ -22,7 +22,7 @@ static void mpu6000_init_sensor();
 
 void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 {
-	px4debug(eCOMMITF, "mpu6000 init ... \r\n");
+	px4debug("mpu6000 init ... \r\n");
 	memcpy(&_settings, in_settings, sizeof(mpu6000_settings_st));
 	memset(&_mpu6000_data_storage, 0, sizeof(_mpu6000_data_storage));
 
@@ -35,7 +35,7 @@ void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 	_storage_idx = 0;
 
 	_module_state = ENABLE;
-	px4debug(eCOMMITF, "mpu6000 init ok \r\n");
+	px4debug("mpu6000 init ok \r\n");
 }
 
 void px4_mpu6000_update()
@@ -159,7 +159,7 @@ static void mpu6000_init_sensor()
 		uint8_t c = mpu6000_reg_get(WHOAMI);
 
 		if (c !=WHOAMI_MPU6000_ID)
-			px4debug(eCOMMITF,"WHOAMI\r\n");
+			px4debug("WHOAMI\r\n");
 
 		HAL_Delay(100);
 
@@ -183,25 +183,25 @@ static void mpu6000_init_sensor()
 
 		// check if settings were set correct
 		if (r1 != MPU_CLK_SEL_PLLGYROZ)
-			px4debug(eCOMMITF,"PWR_MGMT_1\r\n");
+			px4debug("PWR_MGMT_1\r\n");
 
 		if (r2 != BIT_I2C_IF_DIS)
-			px4debug(eCOMMITF,"USER_CTRL\r\n");
+			px4debug("USER_CTRL\r\n");
 
 		if (r3 != 0x00)
-			px4debug(eCOMMITF,"PWR_MGMT_2\r\n");
+			px4debug("PWR_MGMT_2\r\n");
 
 		if (r4 != _settings.smplrt_cfg)
-			px4debug(eCOMMITF,"SMPLRT_DIV\r\n");
+			px4debug("SMPLRT_DIV\r\n");
 
 		if (r5 != _settings.dlpf_cfg)
-			px4debug(eCOMMITF,"CFG\r\n");
+			px4debug("CFG\r\n");
 
 		if (r6 != _settings.gyro_range)
-			px4debug(eCOMMITF,"GYRO_CONFIG\r\n");
+			px4debug("GYRO_CONFIG\r\n");
 
 		if (r7 != _settings.accel_range)
-			px4debug(eCOMMITF,"ACCEL_CONFIG\r\n");
+			px4debug("ACCEL_CONFIG\r\n");
 
 		if ((c == WHOAMI_MPU6000_ID) && (r1 == MPU_CLK_SEL_PLLGYROZ) && (r2 == BIT_I2C_IF_DIS) && (r3 == 0x00)
 				&& (r4 == _settings.smplrt_cfg) && (r5 == _settings.dlpf_cfg) && (r6 == _settings.gyro_range)
@@ -215,7 +215,7 @@ static void mpu6000_init_sensor()
 
 	if (tries == 0)
 	{
-		px4debug(eCOMMITF,"mpu6000 sensor init error!\r\n");
+		px4debug("mpu6000 sensor init error!\r\n");
 		error_handler(0);
 	}
 }

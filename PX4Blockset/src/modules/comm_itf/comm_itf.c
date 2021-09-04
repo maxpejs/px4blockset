@@ -120,13 +120,13 @@ void comm_itf_init()
 
 	if (HAL_UART_Receive_IT(&CommUart, &_rx_buff[0], RX_BUFFER_SIZE) != HAL_OK)
 	{
-		px4debug(eCOMMITF, "comm itf HAL_UART_Receive_IT err!\r\n");
+		px4debug("comm itf HAL_UART_Receive_IT err!\r\n");
 		error_handler(0);
 	}
 
 	_moule_state = ENABLE;
 
-	px4debug(eCOMMITF, "\n\n\ncomm module init ok \r\n");
+	px4debug("\n\n\ncomm module init ok \r\n");
 }
 
 static void check_rx_buff()
@@ -204,47 +204,47 @@ void process_cyclic_print(void)
 	{
 		hmc5883_data_st data;
 		px4_hmc5883_get(&data);
-		px4debug(eCOMMITF, "mag: %f %f %f \r\n", data.magX, data.magY, data.magZ);
+		px4debug("mag: %f %f %f \r\n", data.magX, data.magY, data.magZ);
 	}
 
 	if (_print_map.mpu_acc)
 	{
 		mpu6000_data_st data;
 		px4_mpu6000_get(&data);
-		px4debug(eCOMMITF, "mpu_acc: %f %f %f \r\n", data.accel_x, data.accel_y, data.accel_z);
+		px4debug("mpu_acc: %f %f %f \r\n", data.accel_x, data.accel_y, data.accel_z);
 	}
 
 	if (_print_map.mpu_gyro)
 	{
 		mpu6000_data_st data;
 		px4_mpu6000_get(&data);
-		px4debug(eCOMMITF, "mpu_gyro %f %f %f \r\n", data.gyro_x, data.gyro_y, data.gyro_z);
+		px4debug("mpu_gyro %f %f %f \r\n", data.gyro_x, data.gyro_y, data.gyro_z);
 	}
 
 	if (_print_map.cpu_load)
 	{
-		px4debug(eCOMMITF, "cpu load:%d%% peak:%d%% \r\n", cpu_load_get_curr_cpu_load(), cpu_load_get_max_cpu_load());
+		px4debug("cpu load:%d%% peak:%d%% \r\n", cpu_load_get_curr_cpu_load(), cpu_load_get_max_cpu_load());
 	}
 
 	if (_print_map.gps_pos)
 	{
 		gps_rmc_packet_st pack;
 		px4_gps_get(&pack);
-		px4debug(eCOMMITF, "gps lat:%f lon:%f valid:%d \r\n", pack.Latitude, pack.Longitude, pack.Valid);
+		px4debug("gps lat:%f lon:%f valid:%d \r\n", pack.Latitude, pack.Longitude, pack.Valid);
 	}
 
 	if (_print_map.gps_raw)
 	{
 		uint8_t tmp[GPS_SENTENCE_BUFF_SIZE];
 		px4_gps_get_raw(tmp);
-		px4debug(eCOMMITF, "%s\r\n", tmp);
+		px4debug("%s\r\n", tmp);
 	}
 
 	if (_print_map.baro)
 	{
 		ms5611_data_st data;
 		px4_ms5611_get(&data);
-		px4debug(eCOMMITF, "baro: %f \r\n", data.baroValue);
+		px4debug("baro: %f \r\n", data.baroValue);
 	}
 
 	if (_print_map.rc_input)
@@ -256,13 +256,13 @@ void process_cyclic_print(void)
 		{
 			for (uint32_t i = 0; i < data.channel_cnt; i++)
 			{
-				px4debug(eCOMMITF, "ch%d:%d", (i + 1), data.channels[i]);
+				px4debug("ch%d:%d", (i + 1), data.channels[i]);
 			}
-			px4debug(eCOMMITF, "\r\n");
+			px4debug("\r\n");
 		}
 		else
 		{
-			px4debug(eCOMMITF, "no rc input data\r\n");
+			px4debug("no rc input data\r\n");
 		}
 	}
 	if(_print_map.top)
@@ -338,38 +338,38 @@ void process_received_cmd(void)
 	}
 	else
 	{
-		px4debug(eCOMMITF, "UNKNOWN COMMAND! Type <help> for command info \r\n");
+		px4debug("UNKNOWN COMMAND! Type <help> for command info \r\n");
 	}
 }
 
 void print_help()
 {
-	px4debug(eCOMMITF, "=============================== \r\n");
-	px4debug(eCOMMITF, "= Follow commands are allowed = \r\n");
-	px4debug(eCOMMITF, "===============================\r\n");
-	px4debug(eCOMMITF, "\r\nCOMMANDS FOR SENSOR DATA \r\n");
-	px4debug(eCOMMITF, "------------------------ \r\n");
-	px4debug(eCOMMITF, "'log acc' 	- log acceleration data\r\n");
-	px4debug(eCOMMITF, "'log gyro' 	- log gyroscope sensor data\r\n");
-	px4debug(eCOMMITF, "'log baro' 	- log barometer data\r\n");
-	px4debug(eCOMMITF, "'log mag' 	- log compass data\r\n");
-	px4debug(eCOMMITF, "'log pos' 	- log gps position\r\n");
-	px4debug(eCOMMITF, "'log rmc' 	- log raw GPS-RMC-Sentence\r\n");
-	px4debug(eCOMMITF, "'log rc' 	- log received remote control values\r\n");
-	px4debug(eCOMMITF, "'log sim' 	- log values from signal logger\r\n");
-	px4debug(eCOMMITF, "\r\nCOMMANDS FOR SD CARD FILE MANAGEMENT\r\n");
-	px4debug(eCOMMITF, "------------------------------------\r\n");
-	px4debug(eCOMMITF, "'list all'        - list all existing logfile names\r\n");
-	px4debug(eCOMMITF, "'list <filename>' - list the logfile with name <filename> on console\r\n");
-	px4debug(eCOMMITF, "'del all'         - delete all log files\r\n");
-	px4debug(eCOMMITF, "'del <filename>'  - delete the logfile with name <filename>\r\n");
-	px4debug(eCOMMITF, "\r\nOTHER COMANDS\r\n");
-	px4debug(eCOMMITF, "-------------\r\n");
-	px4debug(eCOMMITF, "'log cpu'       - log cpu usage\r\n");
-	px4debug(eCOMMITF, "'log off'       - disable all logging\r\n");
-	px4debug(eCOMMITF, "'taskload'		- log task cpu usage since last taskload call\r\n");
-	px4debug(eCOMMITF, "'top'           - log cyclic task cpu usage\r\n");
-	px4debug(eCOMMITF, "===============================\r\n");
+	px4debug("=============================== \r\n");
+	px4debug("= Follow commands are allowed = \r\n");
+	px4debug("===============================\r\n");
+	px4debug("\r\nCOMMANDS FOR SENSOR DATA \r\n");
+	px4debug("------------------------ \r\n");
+	px4debug("'log acc' 	- log acceleration data\r\n");
+	px4debug("'log gyro' 	- log gyroscope sensor data\r\n");
+	px4debug("'log baro' 	- log barometer data\r\n");
+	px4debug("'log mag' 	- log compass data\r\n");
+	px4debug("'log pos' 	- log gps position\r\n");
+	px4debug("'log rmc' 	- log raw GPS-RMC-Sentence\r\n");
+	px4debug("'log rc' 	- log received remote control values\r\n");
+	px4debug("'log sim' 	- log values from signal logger\r\n");
+	px4debug("\r\nCOMMANDS FOR SD CARD FILE MANAGEMENT\r\n");
+	px4debug("------------------------------------\r\n");
+	px4debug("'list all'        - list all existing logfile names\r\n");
+	px4debug("'list <filename>' - list the logfile with name <filename> on console\r\n");
+	px4debug("'del all'         - delete all log files\r\n");
+	px4debug("'del <filename>'  - delete the logfile with name <filename>\r\n");
+	px4debug("\r\nOTHER COMANDS\r\n");
+	px4debug("-------------\r\n");
+	px4debug("'log cpu'       - log cpu usage\r\n");
+	px4debug("'log off'       - disable all logging\r\n");
+	px4debug("'taskload'		- log task cpu usage since last taskload call\r\n");
+	px4debug("'top'           - log cyclic task cpu usage\r\n");
+	px4debug("===============================\r\n");
 }
 
 int32_t find_index_of_task(TaskStatus_t * t, const char * s, uint32_t size)
@@ -398,11 +398,11 @@ void print_task_load()
 		return;
 	}
 
-	px4debug(eCOMMITF, "\r\n\r\n");
-	px4debug(eCOMMITF, "=== TASK INFORMATION===\r\n");
-	px4debug(eCOMMITF, "----------------------- \r\n");
-	px4debug(eCOMMITF, "%-20s%-20s%-10s", "Task name", "|Stack watermark", "|CPU(%)\r\n");
-	px4debug(eCOMMITF, "--------------------------------------------------\r\n");
+	px4debug("\r\n\r\n");
+	px4debug("=== TASK INFORMATION===\r\n");
+	px4debug("----------------------- \r\n");
+	px4debug("%-20s%-20s%-10s", "Task name", "|Stack watermark", "|CPU(%)\r\n");
+	px4debug("--------------------------------------------------\r\n");
 
 	// print new calculated values since last call
 	for (unsigned int i = 0; i < size; i++)
@@ -412,25 +412,25 @@ void print_task_load()
 		if(ind == -1)
 			continue;
 
-		px4debug(eCOMMITF, "%-20s|%-20d|%-10d\r\n", val[i].pcTaskName, val[i].usStackHighWaterMark,
+		px4debug("%-20s|%-20d|%-10d\r\n", val[i].pcTaskName, val[i].usStackHighWaterMark,
 				((val[i].ulRunTimeCounter - last_task_state[ind].ulRunTimeCounter) * 100) / (total - last_total_tick_counter));
 	}
-	px4debug(eCOMMITF, "--------------------------------------------------\r\n");
+	px4debug("--------------------------------------------------\r\n");
 
-	px4debug(eCOMMITF, "===== HEAP STATE =======\r\n");
+	px4debug("===== HEAP STATE =======\r\n");
 	size_t fr = xPortGetFreeHeapSize();
 	size_t mfr = xPortGetMinimumEverFreeHeapSize();
 
-	px4debug(eCOMMITF, "free: %d\r\n", fr);
-	px4debug(eCOMMITF, "min free: %d\r\n", mfr);
+	px4debug("free: %d\r\n", fr);
+	px4debug("min free: %d\r\n", mfr);
 
-	px4debug(eCOMMITF, "-------------------------\r\n");
+	px4debug("-------------------------\r\n");
 
 	memcpy(last_task_state, val, sizeof(val));
 	last_total_tick_counter = total;
 }
 
-void px4debug(eTaskID id, char * MESSAGE, ...)
+void px4debug(char * MESSAGE, ...)
 {
 	va_list arg;
 	va_start(arg, MESSAGE);
@@ -458,15 +458,15 @@ void px4debug(eTaskID id, char * MESSAGE, ...)
 		cnt = vsnprintf(pcStringToSend, messageSize, MESSAGE, arg);
 		if (cnt == messageSize)
 		{
-			px4debug(id, "WARNING! px4debug string size limit reached \r\n");
+			px4debug("WARNING! px4debug string size limit reached \r\n");
 		}
 
-		QueueHandle_t msgQueue = getQueueHandleByEnum(id);
+		QueueHandle_t msgQueue = getQueueHandleByEnum(eCOMMITF);
 		if (msgQueue != NULL)
 		{
 			if ( xQueueSend(msgQueue, &pcStringToSend, 0) != pdTRUE)
 			{
-				// px4debug(eCOMMITF, "Queue is full, caused by %d \r\n", id);
+				// px4debug("Queue is full, caused by %d \r\n", id);
 				// adding to queue failed, free memory
 				vPortFree(pcStringToSend);
 			}

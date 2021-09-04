@@ -55,7 +55,7 @@ void px4_gps_init(uint32_t baud)
 
 	// TODO setup gps chip using ublox protocol, only RMC sentense schould be sent
 	_module_state = ENABLE;
-	px4debug(eCOMMITF, "gps init ok \r\n");
+	px4debug("gps init ok \r\n");
 }
 
 static void gps_setup_uart(uint32_t baud)
@@ -74,7 +74,7 @@ static void gps_setup_uart(uint32_t baud)
 
 	if (HAL_UART_Init(&GpsUart) != HAL_OK)
 	{
-		px4debug(eCOMMITF, "gps HAL_UART_Init err!\r\n");
+		px4debug("gps HAL_UART_Init err!\r\n");
 		error_handler(0);
 	}
 
@@ -92,7 +92,7 @@ static void gps_setup_uart(uint32_t baud)
 	// start receiving
 	if (HAL_UART_Receive_IT(&GpsUart, &(_rb.buff[_rb.write]), GPS_RX_PACKAGE_LENGTH) != HAL_OK)
 	{
-		px4debug(eCOMMITF, "gps HAL_UART_Receive_IT err!\r\n");
+		px4debug("gps HAL_UART_Receive_IT err!\r\n");
 		error_handler(0);
 	}
 }
@@ -170,7 +170,7 @@ static void state_machine_process_new_byte(uint8_t rxChar)
 			}
 			else
 			{
-				px4debug(eCOMMITF, "rmc crc err \r\n");
+				px4debug("rmc crc err \r\n");
 			}
 
 			// reset state machine
@@ -240,7 +240,7 @@ void px4_gps_rx_complete_event()
 	}
 	else
 	{
-		px4debug(eCOMMITF, "gps. not enought free space in ring buffer! \r\n");
+		px4debug("gps. not enought free space in ring buffer! \r\n");
 	}
 
 	// TODO check write limit on single operation (write pointer overflow)

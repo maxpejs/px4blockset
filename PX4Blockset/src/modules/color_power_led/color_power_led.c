@@ -12,7 +12,7 @@ int color_power_led_enable(void)
 
 void px4_color_power_led_init()
 {
-	px4debug(eCOMMITF, "color power led init ... \r\n");
+	px4debug("color power led init ... \r\n");
 
 	px4_i2c_drv_init(COLOR_LED_I2C_ITF);
 	px4_i2c_drv_set_clock_speed(COLOR_LED_I2C_ITF, COLOR_LED_CLK_SPEED);
@@ -23,11 +23,11 @@ void px4_color_power_led_init()
 	if (color_power_led_enable() == SUCCESS)
 	{
 		_module_state = ENABLE;
-		px4debug(eCOMMITF, "color power led init ok\r\n");
+		px4debug("color power led init ok\r\n");
 	}
 	else
 	{
-		px4debug(eCOMMITF, "err at color power led init\r\n");
+		px4debug("err at color power led init\r\n");
 	}
 }
 
@@ -65,7 +65,7 @@ void px4_color_power_led_update()
 	}
 	else
 	{
-		px4debug(eCOMMITF, "err set rgb color\r\n");
+		px4debug("err set rgb color\r\n");
 	}
 }
 

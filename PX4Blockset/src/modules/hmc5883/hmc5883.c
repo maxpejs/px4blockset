@@ -12,7 +12,7 @@ static uint32_t _get_scale(void);
 
 void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 {
-	px4debug(eCOMMITF, "hmc5883 init ... \r\n");
+	px4debug("hmc5883 init ... \r\n");
 
 	// copy settings to internal var
 	memcpy(&_settings, in_settings, sizeof(_settings));
@@ -24,11 +24,11 @@ void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 	if (hmc5883_enable() == SUCCESS)
 	{
 		_module_state = ENABLE;
-		px4debug(eCOMMITF, "hmc5883 init ok\r\n");
+		px4debug("hmc5883 init ok\r\n");
 	}
 	else
 	{
-		px4debug(eCOMMITF, "err at hmc5883 init!\r\n");
+		px4debug("err at hmc5883 init!\r\n");
 	}
 }
 
@@ -45,7 +45,7 @@ void px4_hmc5883_update()
 
 	if (result == ERROR)
 	{
-		px4debug(eCOMMITF, "err tx cmd at compass module!\r\n");
+		px4debug("err tx cmd at compass module!\r\n");
 		return;
 	}
 
@@ -54,7 +54,7 @@ void px4_hmc5883_update()
 
 	if (result == ERROR)
 	{
-		px4debug(eCOMMITF, "err get compass data!\r\n");
+		px4debug("err get compass data!\r\n");
 		return;
 	}
 
@@ -120,7 +120,7 @@ static uint32_t hmc5883_enable(void)
 	result &= px4_i2c_drv_transmit(HMC5883_I2C_ITF, HMC5883_I2C_DEVICE_ADDRESS, msg, sizeof(msg));
 
 	if (result == ERROR)
-		px4debug(eCOMMITF, "err set regs!\r\n");
+		px4debug("err set regs!\r\n");
 
 	return result;
 }

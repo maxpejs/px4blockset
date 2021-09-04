@@ -14,7 +14,28 @@ QueueHandle_t getQueueHandleByEnum(eTaskID id)
 	return _tasklist[id].msgQueue;
 }
 
-void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, uint32_t sampleTime, uint32_t stacksize, uint32_t taskPrio)
+const char *  getTaskNameByEnum(eTaskID id)
+{
+	switch (id)
+	{
+		case eCOMMITF: 		return "comm_itf"; 	 break;
+		case eSDCARD: 		return "sdcard"; 	 break;
+		case eCPU_LOAD: 	return "cpu_load"; 	 break;
+		case eAPPL: 		return "appl"; 		 break;
+		case ePWM_AUX: 		return "pwm_aux"; 	 break;
+		case ePWM_MAIN: 	return "pwm_main"; 	 break;
+		case eCOLORLED: 	return "color_led";  break;
+		case ePPM_INPUT: 	return "ppm_input";  break;
+		case eGPS: 			return "gps"; 		 break;
+		case eHMC5883: 		return "hmc5883"; 	 break;
+		case eMPU6000: 		return "mpu6000"; 	 break;
+		case eMS5611: 		return "ms5611"; 	 break;
+		case eSIGLOGGER: 	return "sig_logger"; break;
+		default: 			return "unknown";
+	}
+}
+
+void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTime, uint32_t stacksize, uint32_t taskPrio)
 {
 	_tasklist[id].taskID 		= id;
 	_tasklist[id].taskFunction 	= func;
@@ -22,9 +43,12 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 	_tasklist[id].taskPrio 		= taskPrio;
 	_tasklist[id].sampleTime 	= sampleTime;
 
-	memcpy(_tasklist[id].name, name, strlen(name));
+	const char * taskname = getTaskNameByEnum(id);
+	size_t name_length = min(strlen(getTaskNameByEnum(id)) + 1, TASK_NAME_MAX_LENGTH);
+	memcpy(_tasklist[id].name, taskname, name_length);
+	_tasklist[id].name[TASK_NAME_MAX_LENGTH] = 0; // string termination
 
-	px4debug(eCOMMITF, "Register task \"%s\"\r\n", _tasklist[id].name);
+	px4debug("Register task \"%s\"\r\n", _tasklist[id].name);
 
 	uint32_t ret = 0;
 	uint32_t msgQueueSize = 0;
@@ -43,7 +67,6 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 	switch (id)
 	{
 	case eCOMMITF: 	msgQueueSize = 1000; break;
-	case eSDCARD: 	msgQueueSize = 10; 	break;
 	default: 		msgQueueSize = MSG_QUEUE_SIZE_DEFAULT;	break;
 	}
 
@@ -59,7 +82,7 @@ void px4_tasks_register_task(eTaskID id,  const char * name, callback_t func, ui
 
 	if (!ret)
 	{
-		px4debug(eCOMMITF, "error creating task\r\n");
+		px4debug("error creating task\r\n");
 	}
 }
 
@@ -67,7 +90,7 @@ void Common_Task(void const * argv)
 {
 	px4_task * task = (px4_task*) argv;
 
-	px4debug(eCOMMITF, "entry task \"%s\"\r\n", task->name);
+	px4debug("entry task \"%s\"\r\n", task->name);
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -86,7 +109,7 @@ void Common_Task(void const * argv)
 
 		if(mutex_exist & !mutex_taken)
 		{
-			px4debug(eCOMMITF, "mutex not taken. Task:%s\r\n", task->name);
+			px4debug("mutex not taken. Task:%s\r\n", task->name);
 		}
 
 		if ((mutex_exist & mutex_taken) || (!mutex_exist))
@@ -112,29 +135,29 @@ void px4_tasks_initialize()
 
 	if(_spiMutex == NULL || _pxioMutex == NULL)
 	{
-		px4debug(eCOMMITF, "Tasks init error\r\n");
+		px4debug("Tasks init error\r\n");
 	}
 	else
 	{
-		px4debug(eCOMMITF, "Tasks init ok\r\n");
+		px4debug("Tasks init ok\r\n");
 	}
 }
 
 void px4_tasks_run()
 {
-	px4debug(eCOMMITF, "Start scheduler\r\n");
+	px4debug("Start scheduler\r\n");
 	vTaskStartScheduler();
 }
 
 // TODO Reaction on stack overflow?
 void vApplicationStackOverflowHook(TaskHandle_t *pxTask, signed char *pcTaskName)
 {
-	px4debug(eCOMMITF, "RTOS stack overflow caused by %s\r\n", pcTaskName);
+	px4debug("RTOS stack overflow caused by %s\r\n", pcTaskName);
 }
 
 // TODO Reaction on failed malloc?
 void vApplicationMallocFailedHook(void)
 {
-	px4debug(eCOMMITF, "RTOS malloc failed\r\n");
+	px4debug("RTOS malloc failed\r\n");
 }
 
