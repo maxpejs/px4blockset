@@ -3,14 +3,14 @@
 #include "tasks.h"
 
 // Commands
-#define MPU6000_TOGLE_LOG_ACC  		"log acc"
-#define MPU6000_TOGLE_LOG_GYRO 		"log gyro"
-#define MS5611_TOGLE_LOG_BARO 		"log baro"
-#define HMC5883_TOGLE_LOG_MAG 		"log mag"
-#define TARGET_TOGLE_CPU_LOAD 		"log cpu"
-#define GPS_TOGLE_LOG_POSITION		"log pos"
-#define GPS_TOGLE_LOG_RAW_RMC		"log rmc"
-#define RC_INPUT_TOGLE_LOG_CH_VAL	"log rc"
+#define MPU6000_TOGGLE_LOG_ACC  	"log acc"
+#define MPU6000_TOGGLE_LOG_GYRO 	"log gyro"
+#define MS5611_TOGGLE_LOG_BARO 		"log baro"
+#define HMC5883_TOGGLE_LOG_MAG 		"log mag"
+#define TARGET_TOGGLE_CPU_LOAD 		"log cpu"
+#define GPS_TOGGLE_LOG_POSITION		"log pos"
+#define GPS_TOGGLE_LOG_RAW_RMC		"log rmc"
+#define RC_INPUT_TOGGLE_LOG_CH_VAL	"log rc"
 #define COMMON_LOG_OFF				"log off"
 #define COMMON_LOG_SIM_SIGNALS  	"log sim"
 #define TASK_LOAD 					"taskload"
@@ -30,6 +30,7 @@ typedef enum
 
 /*
  * flags for enabling or disabling print infos
+ * TODO use+test :1 for single bit
  */
 typedef struct
 {
@@ -72,7 +73,7 @@ static uint32_t _parse_idx = 0;
 UART_HandleTypeDef CommUart;
 
 TaskStatus_t last_task_state [eMaxCount];
-uint32_t last_total_tick_counter;
+uint32_t total_ticks_last;
 
 void send_over_uart(const char * str)
 {
@@ -122,13 +123,13 @@ void comm_itf_init()
 
 	if (HAL_UART_Receive_IT(&CommUart, &_rx_buff[0], RX_BUFFER_SIZE) != HAL_OK)
 	{
-		px4debug("comm itf HAL_UART_Receive_IT err!\r\n");
+		px4debug("comm itf HAL_UART_Receive_IT err!\n");
 		error_handler(0);
 	}
 
 	_moule_state = ENABLE;
 
-	px4debug("\n\n\ncomm module init ok \r\n");
+	px4debug("\n\n\ncomm module init ok \n");
 }
 
 void check_rx_buff()
@@ -206,47 +207,47 @@ void process_cyclic_print(void)
 	{
 		hmc5883_data_st data;
 		px4_hmc5883_get(&data);
-		px4debug("mag: %f %f %f \r\n", data.magX, data.magY, data.magZ);
+		px4debug("mag: %f %f %f \n", data.magX, data.magY, data.magZ);
 	}
 
 	if (_print_map.mpu_acc)
 	{
 		mpu6000_data_st data;
 		px4_mpu6000_get(&data);
-		px4debug("mpu_acc: %f %f %f \r\n", data.accel_x, data.accel_y, data.accel_z);
+		px4debug("mpu_acc: %f %f %f \n", data.accel_x, data.accel_y, data.accel_z);
 	}
 
 	if (_print_map.mpu_gyro)
 	{
 		mpu6000_data_st data;
 		px4_mpu6000_get(&data);
-		px4debug("mpu_gyro %f %f %f \r\n", data.gyro_x, data.gyro_y, data.gyro_z);
+		px4debug("mpu_gyro %f %f %f \n", data.gyro_x, data.gyro_y, data.gyro_z);
 	}
 
 	if (_print_map.cpu_load)
 	{
-		px4debug("cpu load:%d%% peak:%d%% \r\n", cpu_load_get_curr_cpu_load(), cpu_load_get_max_cpu_load());
+		px4debug("cpu load:%d%% peak:%d%% \n", cpu_load_get_curr_cpu_load(), cpu_load_get_max_cpu_load());
 	}
 
 	if (_print_map.gps_pos)
 	{
 		gps_rmc_packet_st pack;
 		px4_gps_get(&pack);
-		px4debug("gps lat:%f lon:%f valid:%d \r\n", pack.Latitude, pack.Longitude, pack.Valid);
+		px4debug("gps lat:%f lon:%f valid:%d \n", pack.Latitude, pack.Longitude, pack.Valid);
 	}
 
 	if (_print_map.gps_raw)
 	{
 		uint8_t tmp[GPS_SENTENCE_BUFF_SIZE];
 		px4_gps_get_raw(tmp);
-		px4debug("%s\r\n", tmp);
+		px4debug("%s\n", tmp);
 	}
 
 	if (_print_map.baro)
 	{
 		ms5611_data_st data;
 		px4_ms5611_get(&data);
-		px4debug("baro: %f \r\n", data.baroValue);
+		px4debug("baro: %f \n", data.baroValue);
 	}
 
 	if (_print_map.rc_input)
@@ -260,11 +261,11 @@ void process_cyclic_print(void)
 			{
 				px4debug("ch%d:%d", (i + 1), data.channels[i]);
 			}
-			px4debug("\r\n");
+			px4debug("\n");
 		}
 		else
 		{
-			px4debug("no rc input data\r\n");
+			px4debug("no rc input data\n");
 		}
 	}
 	if(_print_map.top)
@@ -277,19 +278,19 @@ void process_received_cmd(void)
 {
 	const char * buff = (const char*) _parser_buff;
 
-	if (strncmp(buff, MPU6000_TOGLE_LOG_ACC, strlen(MPU6000_TOGLE_LOG_ACC)) == 0)
+	if (strncmp(buff, MPU6000_TOGGLE_LOG_ACC, strlen(MPU6000_TOGGLE_LOG_ACC)) == 0)
 	{
 		_print_map.mpu_acc = !_print_map.mpu_acc;
 	}
-	else if (strncmp(buff, HMC5883_TOGLE_LOG_MAG, strlen(HMC5883_TOGLE_LOG_MAG)) == 0)
+	else if (strncmp(buff, HMC5883_TOGGLE_LOG_MAG, strlen(HMC5883_TOGGLE_LOG_MAG)) == 0)
 	{
 		_print_map.mag = !_print_map.mag;
 	}
-	else if (strncmp(buff, MPU6000_TOGLE_LOG_GYRO, strlen(MPU6000_TOGLE_LOG_GYRO)) == 0)
+	else if (strncmp(buff, MPU6000_TOGGLE_LOG_GYRO, strlen(MPU6000_TOGGLE_LOG_GYRO)) == 0)
 	{
 		_print_map.mpu_gyro = !_print_map.mpu_gyro;
 	}
-	else if (strncmp(buff, TARGET_TOGLE_CPU_LOAD, strlen(TARGET_TOGLE_CPU_LOAD)) == 0)
+	else if (strncmp(buff, TARGET_TOGGLE_CPU_LOAD, strlen(TARGET_TOGGLE_CPU_LOAD)) == 0)
 	{
 		_print_map.cpu_load = !_print_map.cpu_load;
 	}
@@ -298,15 +299,15 @@ void process_received_cmd(void)
 		memset(&_print_map, DISABLE, sizeof(_print_map));
 		px4_signal_output_set_log(DISABLE);
 	}
-	else if (strncmp(buff, GPS_TOGLE_LOG_POSITION, strlen(GPS_TOGLE_LOG_POSITION)) == 0)
+	else if (strncmp(buff, GPS_TOGGLE_LOG_POSITION, strlen(GPS_TOGGLE_LOG_POSITION)) == 0)
 	{
 		_print_map.gps_pos = !_print_map.gps_pos;
 	}
-	else if (strncmp(buff, GPS_TOGLE_LOG_RAW_RMC, strlen(GPS_TOGLE_LOG_RAW_RMC)) == 0)
+	else if (strncmp(buff, GPS_TOGGLE_LOG_RAW_RMC, strlen(GPS_TOGGLE_LOG_RAW_RMC)) == 0)
 	{
 		_print_map.gps_raw = !_print_map.gps_raw;
 	}
-	else if (strncmp(buff, RC_INPUT_TOGLE_LOG_CH_VAL, strlen(RC_INPUT_TOGLE_LOG_CH_VAL)) == 0)
+	else if (strncmp(buff, RC_INPUT_TOGGLE_LOG_CH_VAL, strlen(RC_INPUT_TOGGLE_LOG_CH_VAL)) == 0)
 	{
 		_print_map.rc_input = !_print_map.rc_input;
 	}
@@ -314,7 +315,7 @@ void process_received_cmd(void)
 	{
 		px4_signal_output_set_log(ENABLE);
 	}
-	else if (strncmp(buff, MS5611_TOGLE_LOG_BARO, strlen(MS5611_TOGLE_LOG_BARO)) == 0)
+	else if (strncmp(buff, MS5611_TOGGLE_LOG_BARO, strlen(MS5611_TOGGLE_LOG_BARO)) == 0)
 	{
 		_print_map.baro = !_print_map.baro;
 	}
@@ -340,43 +341,42 @@ void process_received_cmd(void)
 	}
 	else
 	{
-		px4debug("UNKNOWN COMMAND! Type <help> for command info \r\n");
+		px4debug("UNKNOWN COMMAND! Type <help> for command info \n");
 	}
 }
 
 void print_help()
 {
-	px4debug("=============================== \r\n");
-	px4debug("= Follow commands are allowed = \r\n");
-	px4debug("===============================\r\n");
-	px4debug("\r\nCOMMANDS FOR SENSOR DATA \r\n");
-	px4debug("------------------------ \r\n");
-	px4debug("'log acc' 	- log acceleration data\r\n");
-	px4debug("'log gyro' 	- log gyroscope sensor data\r\n");
-	px4debug("'log baro' 	- log barometer data\r\n");
-	px4debug("'log mag' 	- log compass data\r\n");
-	px4debug("'log pos' 	- log gps position\r\n");
-	px4debug("'log rmc' 	- log raw GPS-RMC-Sentence\r\n");
-	px4debug("'log rc' 	- log received remote control values\r\n");
-	px4debug("'log sim' 	- log values from signal logger\r\n");
-	px4debug("\r\nCOMMANDS FOR SD CARD FILE MANAGEMENT\r\n");
-	px4debug("------------------------------------\r\n");
-	px4debug("'list all'        - list all existing logfile names\r\n");
-	px4debug("'list <filename>' - list the logfile with name <filename> on console\r\n");
-	px4debug("'del all'         - delete all log files\r\n");
-	px4debug("'del <filename>'  - delete the logfile with name <filename>\r\n");
-	px4debug("\r\nOTHER COMANDS\r\n");
-	px4debug("-------------\r\n");
-	px4debug("'log cpu'       - log cpu usage\r\n");
-	px4debug("'log off'       - disable all logging\r\n");
-	px4debug("'taskload'		- log task cpu usage since last taskload call\r\n");
-	px4debug("'top'           - log cyclic task cpu usage\r\n");
-	px4debug("===============================\r\n");
+	px4debug("=============================== \n");
+	px4debug("= Follow commands are allowed = \n");
+	px4debug("===============================\n");
+	px4debug("\nCOMMANDS FOR SENSOR DATA \n");
+	px4debug("------------------------ \n");
+	px4debug("'log acc'     - log acceleration data\n");
+	px4debug("'log gyro'    - log gyroscope sensor data\n");
+	px4debug("'log baro'    - log barometer data\n");
+	px4debug("'log mag'     - log compass data\n");
+	px4debug("'log pos'     - log gps position\n");
+	px4debug("'log rmc'     - log raw GPS-RMC-Sentence\n");
+	px4debug("'log rc'      - log received remote control values\n");
+	px4debug("'log sim' 	- log values from signal logger\n");
+	px4debug("\nCOMMANDS FOR SD CARD FILE MANAGEMENT\n");
+	px4debug("------------------------------------\n");
+	px4debug("'list all'        - list all existing logfile names\n");
+	px4debug("'list <filename>' - list the logfile with name <filename> on console\n");
+	px4debug("'del all'         - delete all log files\n");
+	px4debug("'del <filename>'  - delete the logfile with name <filename>\n");
+	px4debug("\nOTHER COMANDS\n");
+	px4debug("-------------\n");
+	px4debug("'log cpu'       - log cpu usage\n");
+	px4debug("'log off'       - disable all logging\n");
+	px4debug("'taskload'		- log task cpu usage since last taskload call\n");
+	px4debug("'top'           - log cyclic task cpu usage\n");
+	px4debug("===============================\n");
 }
 
 int32_t find_index_of_task(TaskStatus_t * t, const char * s, uint32_t size)
 {
-
 	for (uint32_t i = 0; i < size; i++)
 		if (strcmp(t[i].pcTaskName, s) == 0)
 			return i;
@@ -389,14 +389,14 @@ void print_task_load()
 	static uint32_t firstcall = 1;
 
 	TaskStatus_t val[eMaxCount];
-	uint32_t total = 1;
-	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, eMaxCount, &total);
+	uint32_t total_ticks = 1;
+	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, eMaxCount, &total_ticks);
 
 	if(firstcall)
 	{
 		firstcall = 0;
 		memcpy(last_task_state, val, sizeof(val));
-		last_total_tick_counter = total;
+		total_ticks_last = total_ticks;
 	}
 
 	px4debug("\n\n");
@@ -413,8 +413,8 @@ void print_task_load()
 		if(ind == -1)
 			continue;
 
-		px4debug("%-12s|%-20d|%-10d\r\n", val[i].pcTaskName, val[i].usStackHighWaterMark,
-				((val[i].ulRunTimeCounter - last_task_state[ind].ulRunTimeCounter) * 100) / (total - last_total_tick_counter));
+		px4debug("%-12s|%-20d|%-10d\n", val[i].pcTaskName, val[i].usStackHighWaterMark,
+				((val[i].ulRunTimeCounter - last_task_state[ind].ulRunTimeCounter) * 100) / (total_ticks - total_ticks_last));
 	}
 	px4debug("--------------------------------------------------\n");
 
@@ -428,7 +428,7 @@ void print_task_load()
 	px4debug("-------------------------\n");
 
 	memcpy(last_task_state, val, sizeof(val));
-	last_total_tick_counter = total;
+	total_ticks_last = total_ticks;
 }
 
 void px4debug(char * MESSAGE, ...)
@@ -447,7 +447,7 @@ void px4debug(char * MESSAGE, ...)
 		cnt = vsnprintf(arr, messageSize, MESSAGE, arg);
 		if (cnt == messageSize-1)
 		{
-			comm_itf_print_string("WARNING! px4debug string size limit reached \r\n");
+			comm_itf_print_string("WARNING! px4debug string size limit reached \n");
 		}
 		comm_itf_print_string(arr);
 	}
@@ -459,7 +459,7 @@ void px4debug(char * MESSAGE, ...)
 		cnt = vsnprintf(pcStringToSend, messageSize, MESSAGE, arg);
 		if (cnt == messageSize)
 		{
-			px4debug("WARNING! px4debug string size limit reached \r\n");
+			px4debug("WARNING! px4debug string size limit reached \n");
 		}
 
 		QueueHandle_t msgQueue = getQueueHandleByEnum(eCOMMITF);
@@ -467,13 +467,13 @@ void px4debug(char * MESSAGE, ...)
 		{
 			if ( xQueueSend(msgQueue, &pcStringToSend, 0) != pdTRUE)
 			{
-				// px4debug("Queue is full, caused by %d \r\n", id);
+				// px4debug("Queue is full, caused by %d \n", id);
 				// adding to queue failed, free memory
 				vPortFree(pcStringToSend);
 			}
 			else
 			{
-				// comm_itf_print_string("Couldn't sent queue message \r\n");
+				// comm_itf_print_string("Couldn't sent queue message \n");
 			}
 		}
 	}
