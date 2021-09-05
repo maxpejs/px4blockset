@@ -12,7 +12,7 @@ static uint32_t _get_scale(void);
 
 void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 {
-	px4debug("hmc5883 init ... \r\n");
+	px4debug("hmc5883 init ... \n");
 
 	// copy settings to internal var
 	memcpy(&_settings, in_settings, sizeof(_settings));
@@ -24,11 +24,11 @@ void px4_hmc5883_init(hmc5883_settings_st * in_settings)
 	if (hmc5883_enable() == SUCCESS)
 	{
 		_module_state = ENABLE;
-		px4debug("hmc5883 init ok\r\n");
+		px4debug("hmc5883 init ok\n");
 	}
 	else
 	{
-		px4debug("err at hmc5883 init!\r\n");
+		px4debug("err at hmc5883 init!\n");
 	}
 }
 
@@ -45,7 +45,7 @@ void px4_hmc5883_update()
 
 	if (result == ERROR)
 	{
-		px4debug("err tx cmd at compass module!\r\n");
+		px4debug("err tx cmd at compass module!\n");
 		return;
 	}
 
@@ -54,7 +54,7 @@ void px4_hmc5883_update()
 
 	if (result == ERROR)
 	{
-		px4debug("err get compass data!\r\n");
+		px4debug("err get compass data!\n");
 		return;
 	}
 
@@ -73,24 +73,15 @@ static uint32_t _get_scale(void)
 {
 	switch (_settings.magRange)
 	{
-	case HMC5883_RANGE_0_88:
-		return 1370;
-	case HMC5883_RANGE_1_3:
-		return 1090;
-	case HMC5883_RANGE_1_9:
-		return 820;
-	case HMC5883_RANGE_2_5:
-		return 660;
-	case HMC5883_RANGE_4_0:
-		return 440;
-	case HMC5883_RANGE_4_7:
-		return 390;
-	case HMC5883_RANGE_5_6:
-		return 330;
-	case HMC5883_RANGE_8_1:
-		return 230;
-	default:
-		return 1090;	// range +/- 1,3Ga is default chip setting
+	case HMC5883_RANGE_0_88: return 1370;
+	case HMC5883_RANGE_1_3:  return 1090;
+	case HMC5883_RANGE_1_9:  return 820;
+	case HMC5883_RANGE_2_5:  return 660;
+	case HMC5883_RANGE_4_0:  return 440;
+	case HMC5883_RANGE_4_7:  return 390;
+	case HMC5883_RANGE_5_6:  return 330;
+	case HMC5883_RANGE_8_1:  return 230;
+	default:				 return 1090;	// range +/- 1,3Ga is default chip setting
 	}
 }
 
@@ -120,7 +111,7 @@ static uint32_t hmc5883_enable(void)
 	result &= px4_i2c_drv_transmit(HMC5883_I2C_ITF, HMC5883_I2C_DEVICE_ADDRESS, msg, sizeof(msg));
 
 	if (result == ERROR)
-		px4debug("err set regs!\r\n");
+		px4debug("err set regs!\n");
 
 	return result;
 }

@@ -151,7 +151,7 @@ static uint32_t _ms5611_init_sensor()
 //	debug_print_int(_C[5]);
 //	px4debug(eMS5611," C6: ");
 //	debug_print_int(_C[6]);
-//	px4debug(eMS5611,"\r\n");
+//	px4debug(eMS5611,"\n");
 
 	return SUCCESS;
 }
@@ -164,5 +164,5 @@ void px4_ms5611_init()
 	px4_spi_drv_init(PX4_SPI1);
 	_ms5611_init_sensor();
 	_module_state = ENABLE;
-	px4debug("ms5611 init ok \r\n");
+	px4debug("ms5611 init ok \n");
 }

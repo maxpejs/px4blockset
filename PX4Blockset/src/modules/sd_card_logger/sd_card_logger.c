@@ -61,7 +61,7 @@ void px4_sd_card_logger_init()
 {
 	_sd_card_logger_init_sdcard();
 	memset(&file_info, 0, sizeof(file_info));
-	px4debug("sd card logger init ok\r\n");
+	px4debug("sd card logger init ok\n");
 	_module_state = ENABLE;
 }
 
@@ -76,12 +76,12 @@ void px4_sd_card_logger_add_new_logger(uint32_t sampleTime, uint32_t sigCnt, cha
 
 	if (_create_new_log_file(&file_info) == ERROR)
 	{
-		px4debug("#Error creating new log file... Disabling SD Card module! \r\n");
+		px4debug("#Error creating new log file... Disabling SD Card module! \n");
 		_module_state = DISABLE;
 	}
 	else
 	{
-		px4debug("new logger %s created \r\n", file_info.filename);
+		px4debug("new logger %s created \n", file_info.filename);
 	}
 }
 
@@ -120,7 +120,7 @@ void px4_sd_card_logger_add_val(float * values)
 	}
 	else
 	{
-		px4debug("sd card logger. not enough free buffer space\r\n");
+		px4debug("sd card logger. not enough free buffer space\n");
 	}
 }
 
@@ -185,7 +185,7 @@ static void _write_to_sd_card()
 		f_sync(&file_info.fobj);
 		if (fr != FR_OK)
 		{
-			px4debug("Error opening file \r\n");
+			px4debug("Error opening file \n");
 			f_close(&file_info.fobj);
 			return;
 		}
@@ -206,8 +206,8 @@ static void _write_to_sd_card()
 				size_t fistBytePos = (size_t) &file_info.rbuff.buff[idxRead];
 				size_t currBytePos = (size_t) (&(file_info.rbuff.buff[idxRead])) + wBytesTotal;
 
-				px4debug("written %d totalwritten %d total %d left %d\r\n", wBytes, wBytesTotal, totalBytesToWrite, restBytesCnt);
-				px4debug("fistBytePos %d currBytePos %d\r\n", fistBytePos, currBytePos);
+				px4debug("written %d totalwritten %d total %d left %d\n", wBytes, wBytesTotal, totalBytesToWrite, restBytesCnt);
+				px4debug("fistBytePos %d currBytePos %d\n", fistBytePos, currBytePos);
 			}
 
 			loop_cnt++;
@@ -217,7 +217,7 @@ static void _write_to_sd_card()
 
 		if (loop_cnt >= 3)
 		{
-			px4debug("err writing data\r\n");
+			px4debug("err writing data\n");
 			// _module_state = DISABLE;
 			return;
 		}
@@ -231,14 +231,14 @@ static uint32_t _sd_card_logger_init_sdcard()
 // Link the micro SD disk I/O driver
 	if (FATFS_LinkDriver(&SD_Driver, _drive_path) == 0)
 	{
-		px4debug("SD Drive %s linked \r\n", _drive_path);
+		px4debug("SD Drive %s linked \n", _drive_path);
 	}
 
 // Register the file system object to the FatFs module
 	if (f_mount(&_file_system, (TCHAR const*) _drive_path, 0) != FR_OK)
 	{
 		/* FatFs Initialization Error */
-		px4debug("Error mount sd card drive! \r\n");
+		px4debug("Error mount sd card drive! \n");
 		return ERROR;
 	}
 	return SUCCESS;
@@ -267,11 +267,11 @@ static ErrorStatus _create_new_log_file()
 	// check results
 	if ((res != FR_OK) || (writtenbytes != sizeof(mInfo)))
 	{
-		px4debug("#Error open file, or error at writing file meta block\r\n");
+		px4debug("#Error open file, or error at writing file meta block\n");
 	}
 	else
 	{
-		px4debug("done \r\n");
+		px4debug("done \n");
 	}
 
 	f_close(&file_info.fobj);
@@ -322,7 +322,7 @@ static uint32_t _get_next_id_for_logfile(char * filename_prefix)
 	}
 	else
 	{
-		px4debug("open dir failed \r\n");
+		px4debug("open dir failed \n");
 	}
 
 	return ret;
@@ -348,7 +348,7 @@ void px4_sd_card_logger_add_user_cmd(const char * cmd)
 {
 	memcpy(_usercmd, cmd, strlen(cmd) + 1);
 	_new_command_received = 1;
-	px4debug("SDCARD: command received \r\n");
+	px4debug("SDCARD: command received \n");
 }
 
 void _px4_sd_card_logger_process_cmd()
@@ -364,9 +364,9 @@ void _px4_sd_card_logger_process_cmd()
 
 	if (strncmp(_usercmd, "list all", strlen("list all")) == 0)
 	{
-		px4debug("--- file list start ---\r\n");
+		px4debug("--- file list start ---\n");
 		_scan_files("/");
-		px4debug("--- file list end ---\r\n");
+		px4debug("--- file list end ---\n");
 	}
 	else if (strncmp(_usercmd, "list ", strlen("list ")) == 0)
 	{
@@ -378,7 +378,7 @@ void _px4_sd_card_logger_process_cmd()
 	{
 		px4debug("==> Delete all files found on sd card ...");
 		_delete_all_files();
-		px4debug(" done \r\n");
+		px4debug(" done \n");
 	}
 	else if (strncmp(_usercmd, "del ", strlen("del ")) == 0)
 	{
@@ -391,17 +391,17 @@ void _px4_sd_card_logger_process_cmd()
 
 		if (f_unlink(path) != FR_OK)
 		{
-			px4debug("Error \r\n");
+			px4debug("Error \n");
 		}
 		else
 		{
-			px4debug(" ok\r\n");
+			px4debug(" ok\n");
 		}
 	}
 //---------------------------------------------------------------------------
 	else
 	{
-		px4debug("UNKNOWN SD command received! Type <help> for more information\r\n");
+		px4debug("UNKNOWN SD command received! Type <help> for more information\n");
 	}
 
 	_new_command_received = 0;
@@ -423,7 +423,7 @@ static FRESULT _scan_files(char* path)
 			res = f_readdir(&dir, &fno); /* Read a directory item */
 			if (res != FR_OK || fno.fname[0] == 0)
 			{
-				px4debug("end of files \r\n");
+				px4debug("end of files \n");
 				break; /* Break on error or end of dir */
 			}
 
@@ -444,23 +444,23 @@ static FRESULT _scan_files(char* path)
 
 					uint32_t timeline = (fno.fsize - 8) / (8 + signal_cnt * 4);
 					timeline = (timeline * sampletime) / 1000;
-					px4debug("/%s|%i|%i|%i|%i|%i\r\n", fno.fname, (int) fno.fsize, (int) (timeline / 60),
+					px4debug("/%s|%i|%i|%i|%i|%i\n", fno.fname, (int) fno.fsize, (int) (timeline / 60),
 							(int) (timeline - (timeline / 60) * 60), (int) signal_cnt, (int) sampletime);
 				}
 				else
 				{
-					px4debug("Error read meta data res:%d bytesread%d \r\n", res, bytesread);
+					px4debug("Error read meta data res:%d bytesread%d \n", res, bytesread);
 				}
 
 				f_close(&f);
 			}
 			else if (res == FR_LOCKED)
 			{
-				px4debug("Error. File is in use: %s \r\n", fno.fname);
+				px4debug("Error. File is in use: %s \n", fno.fname);
 			}
 			else
 			{
-				px4debug("error on f_open, code:%d \r\n", res);
+				px4debug("error on f_open, code:%d \n", res);
 			}
 
 		}
@@ -469,7 +469,7 @@ static FRESULT _scan_files(char* path)
 	}
 	else
 	{
-		px4debug("open directory failed\r\n");
+		px4debug("open directory failed\n");
 	}
 
 	return res;
@@ -540,7 +540,7 @@ static void _delete_all_files()
 
 static void _list_single_file(char * path)
 {
-	px4debug("SDCARD: start list single file \r\n");
+	px4debug("SDCARD: start list single file \n");
 	_px4_sd_card_logger_stop();
 
 	FIL f;
@@ -551,19 +551,19 @@ static void _list_single_file(char * path)
 
 	if (res == FR_NO_FILE)
 	{
-		px4debug("Error listing file => File doesn't exist \r\n");
+		px4debug("Error listing file => File doesn't exist \n");
 		_px4_sd_card_logger_resume();
 		return;
 	}
 	else if (res == FR_LOCKED)
 	{
-		px4debug("Error listing file => File currently used for logging \r\n");
+		px4debug("Error listing file => File currently used for logging \n");
 		_px4_sd_card_logger_resume();
 		return;
 	}
 	else if (res != FR_OK)
 	{
-		px4debug("Error listing file => Unknown case:%d \r\n", res);
+		px4debug("Error listing file => Unknown case:%d \n", res);
 		f_close(&f);
 		_px4_sd_card_logger_resume();
 		return;
@@ -582,7 +582,7 @@ static void _list_single_file(char * path)
 		return;
 	}
 
-	px4debug("=== BEGIN ===\r\n");
+	px4debug("=== BEGIN ===\n");
 
 	log_dataset_st data;
 	uint32_t packagesize = sizeof(log_dataset_st);
@@ -605,11 +605,11 @@ static void _list_single_file(char * path)
 		{
 			px4debug(",%f", data.val[i]);
 		}
-		px4debug("\r\n");
+		px4debug("\n");
 
 	} while (!f_eof(&f));
 
-	px4debug("=== END ===\r\n");
+	px4debug("=== END ===\n");
 	f_close(&f);
 
 	_px4_sd_card_logger_resume();

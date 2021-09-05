@@ -3,7 +3,7 @@
 static uint32_t 			_module_state = DISABLE;
 static mpu6000_data_st 		_mpu6000_data_storage[2];
 static uint32_t _storage_idx;
-static mpu6000_settings_st 	_settings;
+static mpu6000_settings_st 	mpu6000_settings;
 
 static float _accelScale 	= 1.f;
 static float _gyroScale 	= 1.f;
@@ -22,20 +22,20 @@ static void mpu6000_init_sensor();
 
 void px4_mpu6000_init(mpu6000_settings_st * in_settings)
 {
-	px4debug("mpu6000 init ... \r\n");
-	memcpy(&_settings, in_settings, sizeof(mpu6000_settings_st));
+	px4debug("mpu6000 init ... \n");
+	memcpy(&mpu6000_settings, in_settings, sizeof(mpu6000_settings_st));
 	memset(&_mpu6000_data_storage, 0, sizeof(_mpu6000_data_storage));
 
 	px4_spi_drv_init(PX4_SPI1);
 	mpu6000_init_sensor();
 
-	_accelScale = getAccelScale(_settings.accel_range);
-	_gyroScale  = getGyroScale(_settings.gyro_range);
+	_accelScale = getAccelScale(mpu6000_settings.accel_range);
+	_gyroScale  = getGyroScale(mpu6000_settings.gyro_range);
 
 	_storage_idx = 0;
 
 	_module_state = ENABLE;
-	px4debug("mpu6000 init ok \r\n");
+	px4debug("mpu6000 init ok \n");
 }
 
 void px4_mpu6000_update()
@@ -59,9 +59,9 @@ void px4_mpu6000_update()
 	if (px4_spi_drv_transmit(PX4_SPI1, rxBuff, rxBuff, MPU_MSG_BUFFERSIZE) == SUCCESS)
 	{
 		// register values are stored beginning from rxBuff[1]
-		_mpu6000_data_storage[_storage_idx].accel_x = (calc_accel(rxBuff[1], rxBuff[2]) * _settings.scale_accel_x) + _settings.offset_accel_x;
-		_mpu6000_data_storage[_storage_idx].accel_y = (calc_accel(rxBuff[3], rxBuff[4]) * _settings.scale_accel_y) + _settings.offset_accel_y;
-		_mpu6000_data_storage[_storage_idx].accel_z = (calc_accel(rxBuff[5], rxBuff[6]) * _settings.scale_accel_z) + _settings.offset_accel_z;
+		_mpu6000_data_storage[_storage_idx].accel_x = (calc_accel(rxBuff[1], rxBuff[2]) * mpu6000_settings.scale_accel_x) + mpu6000_settings.offset_accel_x;
+		_mpu6000_data_storage[_storage_idx].accel_y = (calc_accel(rxBuff[3], rxBuff[4]) * mpu6000_settings.scale_accel_y) + mpu6000_settings.offset_accel_y;
+		_mpu6000_data_storage[_storage_idx].accel_z = (calc_accel(rxBuff[5], rxBuff[6]) * mpu6000_settings.scale_accel_z) + mpu6000_settings.offset_accel_z;
 		_mpu6000_data_storage[_storage_idx].temp 	 = calc_temp(rxBuff[7],  rxBuff[8]);
 		_mpu6000_data_storage[_storage_idx].gyro_x = calc_gyro(rxBuff[9],  rxBuff[10]);
 		_mpu6000_data_storage[_storage_idx].gyro_y = calc_gyro(rxBuff[11], rxBuff[12]);
@@ -159,23 +159,23 @@ static void mpu6000_init_sensor()
 		uint8_t c = mpu6000_reg_get(WHOAMI);
 
 		if (c !=WHOAMI_MPU6000_ID)
-			px4debug("WHOAMI\r\n");
+			px4debug("WHOAMI\n");
 
 		HAL_Delay(100);
 
 		// wite settings to register
-		mpu6000_reg_set(PWR_MGMT_1, 	MPU_CLK_SEL_PLLGYROZ); 	HAL_Delay(10);
-		mpu6000_reg_set(USER_CTRL, 		BIT_I2C_IF_DIS);		HAL_Delay(10);
-		mpu6000_reg_set(PWR_MGMT_2, 	0x00);					HAL_Delay(10);
-		mpu6000_reg_set(MPU6000_SMPLRT_DIV, 	_settings.smplrt_cfg);	HAL_Delay(10);
-		mpu6000_reg_set(MPU6000_CFG, 			_settings.dlpf_cfg);	HAL_Delay(10);
-		mpu6000_reg_set(MPU6000_GYRO_CONFIG, 	_settings.gyro_range);	HAL_Delay(10);
-		mpu6000_reg_set(MPU6000_ACCEL_CONFIG,	_settings.accel_range);	HAL_Delay(10);
+		mpu6000_reg_set(PWR_MGMT_1, 			MPU_CLK_SEL_PLLGYROZ); 			HAL_Delay(10);
+		mpu6000_reg_set(USER_CTRL, 				BIT_I2C_IF_DIS);				HAL_Delay(10);
+		mpu6000_reg_set(PWR_MGMT_2, 			0x00);							HAL_Delay(10);
+		mpu6000_reg_set(MPU6000_SMPLRT_DIV, 	mpu6000_settings.smplrt_cfg);	HAL_Delay(10);
+		mpu6000_reg_set(MPU6000_CFG, 			mpu6000_settings.dlpf_cfg);		HAL_Delay(10);
+		mpu6000_reg_set(MPU6000_GYRO_CONFIG, 	mpu6000_settings.gyro_range);	HAL_Delay(10);
+		mpu6000_reg_set(MPU6000_ACCEL_CONFIG,	mpu6000_settings.accel_range);	HAL_Delay(10);
 
 		// read settings from sensor
-		r1 = mpu6000_reg_get(PWR_MGMT_1); 	HAL_Delay(10);
-		r2 = mpu6000_reg_get(USER_CTRL);	HAL_Delay(10);
-		r3 = mpu6000_reg_get(PWR_MGMT_2);	HAL_Delay(10);
+		r1 = mpu6000_reg_get(PWR_MGMT_1); 			HAL_Delay(10);
+		r2 = mpu6000_reg_get(USER_CTRL);			HAL_Delay(10);
+		r3 = mpu6000_reg_get(PWR_MGMT_2);			HAL_Delay(10);
 		r4 = mpu6000_reg_get(MPU6000_SMPLRT_DIV);	HAL_Delay(10);
 		r5 = mpu6000_reg_get(MPU6000_CFG);			HAL_Delay(10);
 		r6 = mpu6000_reg_get(MPU6000_GYRO_CONFIG);	HAL_Delay(10);
@@ -183,29 +183,29 @@ static void mpu6000_init_sensor()
 
 		// check if settings were set correct
 		if (r1 != MPU_CLK_SEL_PLLGYROZ)
-			px4debug("PWR_MGMT_1\r\n");
+			px4debug("PWR_MGMT_1\n");
 
 		if (r2 != BIT_I2C_IF_DIS)
-			px4debug("USER_CTRL\r\n");
+			px4debug("USER_CTRL\n");
 
 		if (r3 != 0x00)
-			px4debug("PWR_MGMT_2\r\n");
+			px4debug("PWR_MGMT_2\n");
 
-		if (r4 != _settings.smplrt_cfg)
-			px4debug("SMPLRT_DIV\r\n");
+		if (r4 != mpu6000_settings.smplrt_cfg)
+			px4debug("SMPLRT_DIV\n");
 
-		if (r5 != _settings.dlpf_cfg)
-			px4debug("CFG\r\n");
+		if (r5 != mpu6000_settings.dlpf_cfg)
+			px4debug("CFG\n");
 
-		if (r6 != _settings.gyro_range)
-			px4debug("GYRO_CONFIG\r\n");
+		if (r6 != mpu6000_settings.gyro_range)
+			px4debug("GYRO_CONFIG\n");
 
-		if (r7 != _settings.accel_range)
-			px4debug("ACCEL_CONFIG\r\n");
+		if (r7 != mpu6000_settings.accel_range)
+			px4debug("ACCEL_CONFIG\n");
 
 		if ((c == WHOAMI_MPU6000_ID) && (r1 == MPU_CLK_SEL_PLLGYROZ) && (r2 == BIT_I2C_IF_DIS) && (r3 == 0x00)
-				&& (r4 == _settings.smplrt_cfg) && (r5 == _settings.dlpf_cfg) && (r6 == _settings.gyro_range)
-				&& (r7 == _settings.accel_range))
+				&& (r4 == mpu6000_settings.smplrt_cfg) && (r5 == mpu6000_settings.dlpf_cfg) && (r6 == mpu6000_settings.gyro_range)
+				&& (r7 == mpu6000_settings.accel_range))
 		{
 			break;	// correct settings were stored
 		}
@@ -215,7 +215,7 @@ static void mpu6000_init_sensor()
 
 	if (tries == 0)
 	{
-		px4debug("mpu6000 sensor init error!\r\n");
+		px4debug("mpu6000 sensor init error!\n");
 		error_handler(0);
 	}
 }

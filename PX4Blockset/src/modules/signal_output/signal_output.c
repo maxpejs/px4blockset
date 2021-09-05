@@ -20,7 +20,7 @@ void px4_signal_output_init(uint32_t sample_time_ms, uint32_t sig_cnt)
 	_sample_time_us = sample_time_ms * 1000;
 	memset(&rbuff, 0 , sizeof(ring_buff_data_st));
 	
-	px4debug("signal logger init ok \r\n");
+	px4debug("signal logger init ok \n");
 	_module_state = ENABLE;
 }
 
@@ -60,7 +60,7 @@ void px4_signal_output_set(float * values)
 	}
 	else
 	{
-		px4debug("signal logger. not enough space in buffer\r\n");
+		px4debug("signal logger. not enough space in buffer\n");
 	}
 }
 
@@ -82,7 +82,7 @@ void px4_signal_output_task(void)
 			px4debug(" [%d]:%f", (i + 1), rbuff.buff[rbuff.read].val[i]);
 		}
 
-		px4debug("\r\n");
+		px4debug("\n");
 		rbuff.read++;
 		rbuff.read %= RING_BUFF_SIZE;
 	}

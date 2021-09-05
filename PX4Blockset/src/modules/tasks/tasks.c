@@ -48,7 +48,7 @@ void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTimeMS,
 	memcpy(_tasklist[id].name, taskname, name_length);
 	_tasklist[id].name[TASK_NAME_MAX_LENGTH] = 0; // string termination
 
-	px4debug("Register task \"%s\"\r\n", _tasklist[id].name);
+	px4debug("Register task \"%s\"\n", _tasklist[id].name);
 
 	uint32_t ret = 0;
 	uint32_t msgQueueSize = 0;
@@ -82,7 +82,7 @@ void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTimeMS,
 
 	if (!ret)
 	{
-		px4debug("error creating task\r\n");
+		px4debug("error creating task\n");
 	}
 }
 
@@ -90,7 +90,7 @@ void Common_Task(void const * argv)
 {
 	px4_task * task = (px4_task*) argv;
 
-	px4debug("entry task \"%s\"\r\n", task->name);
+	px4debug("entry task \"%s\"\n", task->name);
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
@@ -109,7 +109,7 @@ void Common_Task(void const * argv)
 
 		if(mutex_exist & !mutex_taken)
 		{
-			px4debug("mutex not taken. Task:%s\r\n", task->name);
+			px4debug("mutex not taken. Task:%s\n", task->name);
 		}
 
 		if ((mutex_exist & mutex_taken) || (!mutex_exist))
@@ -135,29 +135,29 @@ void px4_tasks_initialize()
 
 	if(_spiMutex == NULL || _pxioMutex == NULL)
 	{
-		px4debug("Tasks init error\r\n");
+		px4debug("Tasks init error\n");
 	}
 	else
 	{
-		px4debug("Tasks init ok\r\n");
+		px4debug("Tasks init ok\n");
 	}
 }
 
 void px4_tasks_run()
 {
-	px4debug("Start scheduler\r\n");
+	px4debug("Start scheduler\n");
 	vTaskStartScheduler();
 }
 
 // TODO Reaction on stack overflow?
 void vApplicationStackOverflowHook(TaskHandle_t *pxTask, signed char *pcTaskName)
 {
-	px4debug("RTOS stack overflow caused by %s\r\n", pcTaskName);
+	px4debug("RTOS stack overflow caused by %s\n", pcTaskName);
 }
 
 // TODO Reaction on failed malloc?
 void vApplicationMallocFailedHook(void)
 {
-	px4debug("RTOS malloc failed\r\n");
+	px4debug("RTOS malloc failed\n");
 }
 

@@ -154,11 +154,11 @@ static void _setup_gpio(GPIO_TypeDef * port, uint16_t pin, uint32_t mode, uint32
 
 void print_system_info()
 {
-	px4debug("******************************************\r\n");
-	px4debug("*** System Info ***\r\n");
-	px4debug("PX4-Blockset v. 1.2\r\n");
-	px4debug("FreeRTOS     v. 9.0.0\r\n");
-	px4debug("FatFs        v. R0.13c\r\n");
-	px4debug("STM32F4_HAL  v. 1.19.0\r\n");
-	px4debug("******************************************\r\n");
+	px4debug("******************************************\n");
+	px4debug("*** System Info ***\n");
+	px4debug("PX4-Blockset v. 1.2\n");
+	px4debug("FreeRTOS     v. 9.0.0\n");
+	px4debug("FatFs        v. R0.13c\n");
+	px4debug("STM32F4_HAL  v. 1.19.0\n");
+	px4debug("******************************************\n");
 }
