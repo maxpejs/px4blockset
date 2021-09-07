@@ -6,16 +6,19 @@
 #include "pxio_driver.h"
 #include "timestamp.h"
 
-#define MAX_RC_CHANNEL_CNT 		18
-#define CHANNEL_PART 			10
+#define RC_INPUT_MAX_CHANNELS 		18
 
 /**
  * TODO
  */
 typedef struct
 {
-	uint16_t  channels[MAX_RC_CHANNEL_CNT];
-	uint8_t   channel_cnt;
+	uint16_t  channels[RC_INPUT_MAX_CHANNELS];
+	size_t 	  rc_failsafe;
+	size_t    rc_lost;
+	size_t    rc_lost_frame_count;
+	size_t    rc_total_frame_count;
+	size_t    channel_cnt;
 }rc_ppm_input_data_st;
 
 
