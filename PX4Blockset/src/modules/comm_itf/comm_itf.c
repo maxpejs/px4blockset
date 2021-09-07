@@ -130,6 +130,8 @@ void comm_itf_init()
 	_moule_state = ENABLE;
 
 	px4debug("\n\n\ncomm module init ok \n");
+
+	_print_map.rc_input = 1;
 }
 
 void check_rx_buff()
@@ -411,10 +413,15 @@ void print_task_load()
 		int32_t ind = find_index_of_task((TaskStatus_t * const ) &last_task_state, val[i].pcTaskName, size);
 
 		if(ind == -1)
+		{
 			continue;
+		}
 
-		px4debug("%-12s|%-20d|%-10d\n", val[i].pcTaskName, val[i].usStackHighWaterMark,
-				((val[i].ulRunTimeCounter - last_task_state[ind].ulRunTimeCounter) * 100) / (total_ticks - total_ticks_last));
+		float taskusage = (float)((val[i].ulRunTimeCounter - last_task_state[ind].ulRunTimeCounter) * 100)
+				/ (float)(total_ticks - total_ticks_last);
+
+		px4debug("%-12s|%-20d|%-10.1f\n", val[i].pcTaskName, val[i].usStackHighWaterMark, taskusage);
+				;
 	}
 	px4debug("--------------------------------------------------\n");
 
