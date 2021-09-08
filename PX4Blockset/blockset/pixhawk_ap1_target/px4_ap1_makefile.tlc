@@ -119,7 +119,7 @@ all: build upload
 
 build: $(PRODUCT_BUNDLE) $(DMP) report
 
-upload: 
+upload: build
 	$(PYTHON) $(UPLOADER) --port $(COMPORT) $(PRODUCT_BUNDLE)
 
 $(PRODUCT_BUNDLE): $(BIN)
@@ -135,12 +135,12 @@ $(PRODUCT_BUNDLE): $(BIN)
 	@echo Assembling file: $<
 	$(AS) -c $(AFLAGS) $< -o $@
 
-%assign str = "%.o : %.c"
+%assign str = "%.o : %.c %.h"
 %<str>
 	@echo Compiling: $<
 	$(CC) -c $(CFLAGS) $< -o $@
 
-%assign str = "%.o : %.cpp"
+%assign str = "%.o : %.cpp %.hpp"
 %<str>
 	@echo CXX Compiling: $<
 	$(CXX) -MD -c $(CXXFLAGS) $< -o $@
