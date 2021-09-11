@@ -9,12 +9,21 @@
 	%% activate task if block is used in model
 	%openfile tmpBuf
 		#define PX4_RC_PPM_INPUT_TASK_ENABLE
-		#define PX4_RC_PPM_INPUT_TASK_SAMPLE_TIME	50
+		#define PX4_RC_PPM_INPUT_TASK_SAMPLE_TIME	25
     %closefile tmpBuf
 	%assign file = LibCreateSourceFile("Header", "Simulink", "px4_task_config")
 	%<LibAddSourceFileCustomSection(file, "Defines", "customDefines")>
 	%<LibSetSourceFileCustomSection(file, "customDefines", tmpBuf)>
-	
+
+    %% -------------
+    %% Add a global var to the model's public header file <model.h>
+    %assign pubName = LibGetMdlPubHdrBaseName()
+    %assign modelH  = LibCreateSourceFile("Header", "Simulink", pubName)
+    %openfile tmpBuf
+        rc_ppm_input_data_st rc_in_data;
+	%closefile tmpBuf
+    %<LibSetSourceFileSection(modelH,"Definitions",tmpBuf)>
+
 %endfunction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -30,7 +39,6 @@
 %function Outputs(block, system) Output
     %assign idx = 0
     %assign portIdx = 0
-    rc_ppm_input_data_st rc_in_data;
 	px4_rc_ppm_input_get(&rc_in_data);  // get new values
     %foreach signal = 18
         %if FEVAL("int8", Parameter[idx].Value[0])
