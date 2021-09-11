@@ -1,32 +1,31 @@
 #include "defines.h"
 #include "rc_ppm_input.h"
 
-
-static rc_ppm_input_data_st 	rc_in_data_storage[2];
-static uint32_t 				_idxsection 			= 0;
-static FunctionalState			_module_init 			= DISABLE;
+static rc_ppm_input_data_st rc_in_data_storage[2];
+static uint32_t 			storage_idx 	= 0;
+static FunctionalState		module_init = DISABLE;
 
 void px4_rc_ppm_input_get(rc_ppm_input_data_st * data)
 {
-	memcpy(data, &rc_in_data_storage[_idxsection], sizeof(rc_ppm_input_data_st));
+	memcpy(data, &rc_in_data_storage[storage_idx], sizeof(rc_ppm_input_data_st));
 }
 
 void px4_rc_ppm_input_init(void)
 {
-	px4debug("rc_ppm_input init ...\n");
 	memset(&rc_in_data_storage, 0, sizeof(rc_in_data_storage));
 	pxio_driver_init();
-	_module_init = ENABLE;
+	module_init = ENABLE;
 	px4debug("rc_ppm_input init ok\n");
 }
 
 void px4_rc_ppm_input_update()
 {
-	if (_module_init == DISABLE)
+	if (module_init == DISABLE)
 	{
 		return;
 	}
 
+	// same implementation as in official pixhawk driver px4io.cpp
 	const unsigned prolog = PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT;
 	uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
 
@@ -38,9 +37,6 @@ void px4_rc_ppm_input_update()
 		return;
 	}
 
-	// get index from last updated storage bank
-	uint32_t idx = (_idxsection + 1) % 2;
-
 	// get the channel count
 	uint16_t channel_count = regs[PX4IO_P_RAW_RC_COUNT];
 	
@@ -49,6 +45,7 @@ void px4_rc_ppm_input_update()
 		channel_count = RC_INPUT_MAX_CHANNELS;
 	}
 
+	// if there are more channels than we read first time, so get the values of the next channel
 	if (channel_count > 9)
 	{
 		ret = pxio_driver_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + 9,
@@ -60,6 +57,9 @@ void px4_rc_ppm_input_update()
 		}
 	}
 
+	// get the storage bank index
+	uint32_t idx = (storage_idx + 1) % 2;
+
 	// Get the channel count
 	rc_in_data_storage[idx].rc_failsafe = (regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	rc_in_data_storage[idx].rc_lost = !(regs[PX4IO_P_RAW_RC_FLAGS] & PX4IO_P_RAW_RC_FLAGS_RC_OK);
@@ -70,5 +70,5 @@ void px4_rc_ppm_input_update()
 	memcpy(&rc_in_data_storage[idx].channels, &regs[prolog], rc_in_data_storage[idx].channel_cnt * 2);
 
 	// switch index to other storage bank
-	_idxsection = idx;
+	storage_idx = idx;
 }
