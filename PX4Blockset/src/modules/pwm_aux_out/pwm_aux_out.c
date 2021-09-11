@@ -1,14 +1,14 @@
 #include "pwm_aux_out.h"
 
-static float 	_impulse_fac[2];
-static uint8_t  _module_ready = DISABLE;
-static uint16_t _impulse_values[6];
+static float 	impulse_fac[2];
+static uint8_t  module_ready = DISABLE;
+static uint16_t impulse_values[6];
 
 TIM_HandleTypeDef TimHandler1, TimHandler4;
 
 void px4_pwm_aux_out_init(uint16_t * pwm_freqs)
 {
-	memset(_impulse_values, 0, sizeof(_impulse_values));
+	memset(impulse_values, 0, sizeof(impulse_values));
 
 	uint32_t prescalers[2];
 	uint32_t periods[2];
@@ -25,7 +25,7 @@ void px4_pwm_aux_out_init(uint16_t * pwm_freqs)
 		periods[i] 	  = (HAL_RCC_GetSysClockFreq() / (i + 1)) / ((uint32_t) pwm_freqs[i] * (prescalers[i] + 1));
 
 		// calc factor for calculating register compare value from pulse
-		_impulse_fac[i] = (float) (pwm_freqs[i] * periods[i]) / 1e6f;
+		impulse_fac[i] = (float) (pwm_freqs[i] * periods[i]) / 1e6f;
 	}
 
 	__HAL_RCC_GPIOE_CLK_ENABLE();
@@ -90,40 +90,44 @@ void px4_pwm_aux_out_init(uint16_t * pwm_freqs)
 	HAL_TIM_PWM_Start(&TimHandler4, TIM_CHANNEL_2);	// aux5
 	HAL_TIM_PWM_Start(&TimHandler4, TIM_CHANNEL_3);	// aux6
 
-	_module_ready = ENABLE;
+	module_ready = ENABLE;
 	px4debug("pwm_aux_out init ok\n");
 }
 
-void px4_pwm_aux_out_set(uint16_t * impulse_values)
+void px4_pwm_aux_out_set(uint16_t * new_impulse_values)
 {
-	memcpy(&_impulse_values, impulse_values, sizeof(_impulse_values));
+	memcpy(&impulse_values, new_impulse_values, sizeof(impulse_values));
+}
+
+uint16_t check_impulse_range(uint16_t value)
+{
+	if (value > PWM_AUX_OUT_IMPULSE_MAX) // limit to max
+		return PWM_AUX_OUT_IMPULSE_MAX;
+
+	if (value < PWM_AUX_OUT_IMPULSE_MIN) // limit to min
+		return PWM_AUX_OUT_IMPULSE_MIN;
+
+	return value; // otherwise value is OK
 }
 
 void px4_pwm_aux_out_update()
 {
-	if (_module_ready == DISABLE)
+	if (module_ready == DISABLE)
 	{
 		return;
 	}
 
+	// limit the values
 	for (int i = 0; i < MAX_AUX_OUT_SERVO_CNT; i++)
 	{
-		if (_impulse_values[i] > PWM_AUX_OUT_IMPULSE_MAX)
-		{
-			_impulse_values[i] = PWM_AUX_OUT_IMPULSE_MAX;
-		}
-
-		if (_impulse_values[i] < PWM_AUX_OUT_IMPULSE_MIN)
-		{
-			_impulse_values[i] = PWM_AUX_OUT_IMPULSE_MIN;
-		}
+		impulse_values[i] = check_impulse_range(impulse_values[i]);
 	}
 
 	// update period value
-	TIM1->CCR4 = _impulse_values[0] * _impulse_fac[0];
-	TIM1->CCR3 = _impulse_values[1] * _impulse_fac[0];
-	TIM1->CCR2 = _impulse_values[2] * _impulse_fac[0];
-	TIM1->CCR1 = _impulse_values[3] * _impulse_fac[0];
-	TIM4->CCR2 = _impulse_values[4] * _impulse_fac[1];
-	TIM4->CCR3 = _impulse_values[5] * _impulse_fac[1];
+	TIM1->CCR4 = impulse_values[0] * impulse_fac[0];
+	TIM1->CCR3 = impulse_values[1] * impulse_fac[0];
+	TIM1->CCR2 = impulse_values[2] * impulse_fac[0];
+	TIM1->CCR1 = impulse_values[3] * impulse_fac[0];
+	TIM4->CCR2 = impulse_values[4] * impulse_fac[1];
+	TIM4->CCR3 = impulse_values[5] * impulse_fac[1];
 }
