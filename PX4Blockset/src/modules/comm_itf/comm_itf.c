@@ -131,7 +131,8 @@ void comm_itf_init()
 
 	px4debug("\n\n\ncomm module init ok \n");
 
-	_print_map.rc_input = 1;
+//	_print_map.rc_input = 1;
+//	_print_map.top = 1;
 }
 
 void check_rx_buff()
@@ -255,6 +256,8 @@ void process_cyclic_print(void)
 	if (_print_map.rc_input)
 	{
 		rc_ppm_input_data_st data;
+		memset(&data, 0, sizeof(data));
+
 		px4_rc_ppm_input_get(&data);
 
 		if (data.channel_cnt > 0)
@@ -443,6 +446,7 @@ void px4debug(char * MESSAGE, ...)
 	va_list arg;
 	va_start(arg, MESSAGE);
 
+	// TODO reduce arr size to ~100?
 	int messageSize = 256;
 	int cnt = -1;
 
@@ -452,6 +456,8 @@ void px4debug(char * MESSAGE, ...)
 		// use dynamic strings
 		char arr[256];
 		cnt = vsnprintf(arr, messageSize, MESSAGE, arg);
+
+		// TODO use >= for check
 		if (cnt == messageSize-1)
 		{
 			comm_itf_print_string("WARNING! px4debug string size limit reached \n");
