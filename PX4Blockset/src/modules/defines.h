@@ -38,4 +38,8 @@
 #define PXIO_ITF_DMA_RX_IRQ_SUB_PRIO	0
 #define PXIO_ITF_DMA_TX_IRQ_SUB_PRIO	1
 
+
+#define TRUE 	1
+#define FALSE 	0
+
 #endif // DEFINES_H
