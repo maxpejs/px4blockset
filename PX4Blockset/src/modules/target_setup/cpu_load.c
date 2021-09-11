@@ -1,17 +1,25 @@
 #include "cpu_load.h"
+#include "timestamp.h"
 #include "string.h"
 
 static uint32_t cpu_load_max = 0;
 static uint32_t cpu_load_act = 0;
+static uint32_t task_start_delay = 10e6;
+static uint32_t task_start_t = 0;
 
 void cpu_load_update()
 {
 	static uint32_t last_cpu_load = 0;
 	static uint32_t last_os_runtime_total = 0;
 
-	TaskStatus_t val[10];
+	if (toc(task_start_t) < task_start_delay)
+	{
+		return;
+	}
+
+	TaskStatus_t val[15];
 	uint32_t os_runtime_total = 1;
-	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, 10, &os_runtime_total);
+	UBaseType_t size = uxTaskGetSystemState((TaskStatus_t * const ) &val, 15, &os_runtime_total);
 
 	uint32_t cpu_load = 0;
 
