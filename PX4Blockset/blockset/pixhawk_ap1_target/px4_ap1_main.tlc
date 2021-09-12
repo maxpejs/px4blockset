@@ -23,9 +23,8 @@
 		
 		print_system_info();
 		
-		comm_itf_print_string("Program: ");
-		comm_itf_print_string(PX4_MODEL_NAME);
-		comm_itf_print_string("\n******************************************\n");
+		px4debug("Program: %s\n", PX4_MODEL_NAME);
+		px4debug("******************************************\n");
 		
 		// Initialize model
         %<LibCallModelInitialize()>
