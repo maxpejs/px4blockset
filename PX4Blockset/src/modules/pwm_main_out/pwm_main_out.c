@@ -4,21 +4,24 @@
 #include <timestamp.h>
 #include <macros.h>
 
-static uint32_t _safety_off_last_val 	= 0;
-static uint32_t _arm_state_last_val 	= 0;
-static uint32_t _main_out_runtime		= 0;
-static uint32_t _main_out_max_runtime	= 0;
+static uint32_t safetyoff_last_val 	= 0;
+static uint32_t _arm_state_last_val = 0;
+static pwm_main_out_data_st 		pwm_output_data[2];
+static int32_t  storage_idx  		= 0;
 
-static pwm_main_out_data_st 			_pwm_output_data[2];
-static int32_t  _idxsection  			= 0;
-
-static uint32_t  _module_ready 			= DISABLE;
+static uint32_t  module_ready 		= DISABLE;
 
 static int32_t internal_reg_mod(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t setbits);
 static int32_t internal_reg_set(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values);
 
 static void set_arm_state(uint8_t ena)
 {
+	// if value didn't changed, nothing to do here
+	if (_arm_state_last_val == ena)
+	{
+		return;
+	}
+
 	// inform pxio about the arm state switching
 	int result;
 
@@ -43,10 +46,15 @@ static void set_arm_state(uint8_t ena)
 	}
 }
 
-static void set_safety_off_state(uint8_t ena)
+static void set_safetyoff_state(uint8_t ena)
 {
-	// inform pxio about the safety off switching
+	// if value didn't changed, nothing to do here
+	if (safetyoff_last_val == ena)
+	{
+		return;
+	}
 
+	// inform pxio about the safety off switching
 	int result;
 	if (ena)
 	{
@@ -61,7 +69,7 @@ static void set_safety_off_state(uint8_t ena)
 	// otherwise try once again on next function call
 	if (result == SUCCESS)
 	{
-		_safety_off_last_val = ena;
+		safetyoff_last_val = ena;
 	}
 	else
 	{
@@ -71,18 +79,17 @@ static void set_safety_off_state(uint8_t ena)
 
 void px4_pwm_main_out_init(pwm_main_out_settings_st * settings)
 {
-	px4debug("pwm_main_out init ...\n");
-	memset(&_pwm_output_data, 0, sizeof(_pwm_output_data));
+	memset(&pwm_output_data, 0, sizeof(pwm_output_data));
 	pxio_driver_init();
 
 	if (internal_reg_mod(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) != SUCCESS)
 	{
-		px4debug("reg mod PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED err\n");
+		px4debug("reg mod HANDLING_DISABLED err\n");
 	}
 
 	if (internal_reg_mod(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_IO_ARM_OK) != SUCCESS)
 	{
-		px4debug("reg mod PX4IO_P_SETUP_ARMING_IO_ARM_OK err\n");
+		px4debug("reg mod ARM_OK err\n");
 	}
 
 	/* SET PWM DEFAULT RATE */
@@ -103,64 +110,52 @@ void px4_pwm_main_out_init(pwm_main_out_settings_st * settings)
 		px4debug("set pwm mask err\n");
 	}
 
-	set_safety_off_state(DISABLE);
+	set_safetyoff_state(DISABLE);
 	set_arm_state(DISABLE);
 
-	_module_ready = ENABLE;
+	module_ready = ENABLE;
 
 	px4debug("pwm_main_out init ok\n");
 }
 
 void px4_pwm_main_out_set(pwm_main_out_data_st * new_data)
 {
-	memcpy(&_pwm_output_data[_idxsection], new_data, sizeof(pwm_main_out_data_st));
+	memcpy(&pwm_output_data[storage_idx], new_data, sizeof(pwm_main_out_data_st));
 }
 
 void px4_pwm_main_out_update()
 {
-	uint32_t start = tic();
-
-	if (_module_ready == DISABLE)
+	if (module_ready == DISABLE)
 	{
 		return;
 	}
 	
 	// get index from last updated storage bank
-	uint32_t idx = _idxsection;
-	
+	uint32_t idx = storage_idx;
+
 	// switch index to other storage bank
-	_idxsection = (_idxsection + 1) % 2;
+	storage_idx = (storage_idx + 1) % 2;
 
-	if (_safety_off_last_val != _pwm_output_data[idx].safetyoff)
-	{
-		set_safety_off_state(_pwm_output_data[idx].safetyoff); // safety off state change detected
-	}
+	// handle safety off state change
+	set_safetyoff_state(pwm_output_data[idx].safetyoff);
 
-	if (_arm_state_last_val != _pwm_output_data[idx].arm)
-	{
-		set_arm_state(_pwm_output_data[idx].arm); // arm state change detected
-	}
+	// handle arm state change
+	set_arm_state(pwm_output_data[idx].arm);
+
 
 	for (int i = 0; i < MAX_MAIN_OUT_SERVO_CNT; i++)
 	{
-		if (_pwm_output_data[idx].values[i] > PWM_MAIN_OUT_IMPULSE_MAX)
-			_pwm_output_data[idx].values[i] = PWM_MAIN_OUT_IMPULSE_MAX;
+		if (pwm_output_data[idx].values[i] > PWM_MAIN_OUT_IMPULSE_MAX)
+			pwm_output_data[idx].values[i] = PWM_MAIN_OUT_IMPULSE_MAX;
 
-		if (_pwm_output_data[idx].values[i] < PWM_MAIN_OUT_IMPULSE_MIN)
-			_pwm_output_data[idx].values[i] = PWM_MAIN_OUT_IMPULSE_MIN;
+		if (pwm_output_data[idx].values[i] < PWM_MAIN_OUT_IMPULSE_MIN)
+			pwm_output_data[idx].values[i] = PWM_MAIN_OUT_IMPULSE_MIN;
 	}
 
 	// send PWM values to PXIO as impulse duration in µs for given pwm channels
-	if (pxio_driver_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, &(_pwm_output_data[idx].values[0]), MAX_MAIN_OUT_SERVO_CNT) != SUCCESS)
+	if (pxio_driver_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, &(pwm_output_data[idx].values[0]), MAX_MAIN_OUT_SERVO_CNT) != SUCCESS)
 	{
 		px4debug("set direct main out pwms err \n");
-	}
-	
-	_main_out_runtime = toc(start);
-	
-	if(_main_out_runtime > _main_out_max_runtime)
-	{
-		_main_out_max_runtime = _main_out_runtime;
 	}
 }
 
