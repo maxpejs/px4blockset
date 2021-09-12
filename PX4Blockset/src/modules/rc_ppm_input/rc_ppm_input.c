@@ -15,7 +15,7 @@ void px4_rc_ppm_init(void)
 	memset(&rc_in_data_storage, 0, sizeof(rc_in_data_storage));
 	pxio_driver_init();
 	module_init = ENABLE;
-	px4debug("rc_ppm_input init ok\n");
+	px4debug("rc_in init ok\n");
 }
 
 void px4_rc_ppm_update()
