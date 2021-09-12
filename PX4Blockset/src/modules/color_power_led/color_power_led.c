@@ -17,6 +17,7 @@ void px4_color_power_led_init()
 
 	memset(&rgb_color, 0, sizeof(rgb_color));
 	memset(&rgb_last,  0, sizeof(rgb_last));
+	storage_idx = 0;
 
 	if (color_power_led_enable() == SUCCESS)
 	{
