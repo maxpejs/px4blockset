@@ -48,7 +48,7 @@ void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTimeMS,
 	memcpy(_tasklist[id].name, taskname, name_length);
 	_tasklist[id].name[TASK_NAME_MAX_LENGTH] = 0; // string termination
 
-	px4debug("Register task \"%s\"\n", _tasklist[id].name);
+	px4debug("reg task \"%s\"\n", _tasklist[id].name);
 
 	uint32_t ret = 0;
 	uint32_t msgQueueSize = 0;
@@ -66,7 +66,7 @@ void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTimeMS,
 	// set different message queue size
 	switch (id)
 	{
-	case eCOMMITF: 	msgQueueSize = 1000; break;
+	case eCOMMITF: 	msgQueueSize = 100; break;
 	default: 		msgQueueSize = MSG_QUEUE_SIZE_DEFAULT;	break;
 	}
 
