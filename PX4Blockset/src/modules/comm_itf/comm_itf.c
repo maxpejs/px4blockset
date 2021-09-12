@@ -401,13 +401,13 @@ void print_task_load()
 	{
 		firstcall = 0;
 		memcpy(last_task_state, val, sizeof(val));
-		total_ticks_last = total_ticks;
+		total_ticks_last = 0;
 	}
 
 	px4debug("\n\n");
 	px4debug("=== TASK LIST ===\n");
 	px4debug("----------------------- \n");
-	px4debug("%-12s%-20s%-10s", "Task name", "|Stack watermark", "|CPU(%) \n");
+	px4debug("%-12s%-21s%-10s", "Task name", "|Stack watermark", "|CPU(%) \n");
 	px4debug("--------------------------------------------------\n");
 
 	// print new calculated values since last call
