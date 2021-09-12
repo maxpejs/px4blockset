@@ -255,10 +255,10 @@ void process_cyclic_print(void)
 
 	if (_print_map.rc_input)
 	{
-		rc_ppm_input_data_st data;
+		rc_ppm_data_st data;
 		memset(&data, 0, sizeof(data));
 
-		px4_rc_ppm_input_get(&data);
+		px4_rc_ppm_get(&data);
 
 		if (data.channel_cnt > 0)
 		{

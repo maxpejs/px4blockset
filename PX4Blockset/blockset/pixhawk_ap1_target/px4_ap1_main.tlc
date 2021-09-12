@@ -53,8 +53,8 @@
 		px4_tasks_register_task(eMPU6000, px4_mpu6000_update, PX4_MPU6000_TASK_SAMPLE_TIME, 1024, ePrioAboveNormal);
 	#endif
 	
-	#ifdef PX4_RC_PPM_INPUT_TASK_ENABLE
-		px4_tasks_register_task(ePPM_INPUT, px4_rc_ppm_input_update, PX4_RC_PPM_INPUT_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
+	#ifdef PX4_RC_PPM_TASK_ENABLE
+		px4_tasks_register_task(ePPM_INPUT, px4_rc_ppm_update, PX4_RC_PPM_TASK_SAMPLE_TIME, DEFAULT_STACK_SIZE, ePrioNormal);
 	#endif
 	
 	#ifdef PX4_PPWM_AUX_OUT_TASK_ENABLE

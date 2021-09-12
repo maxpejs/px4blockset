@@ -1,16 +1,16 @@
 #include "defines.h"
 #include "rc_ppm_input.h"
 
-static rc_ppm_input_data_st rc_in_data_storage[2];
+static rc_ppm_data_st rc_in_data_storage[2];
 static uint32_t 			storage_idx 	= 0;
 static FunctionalState		module_init = DISABLE;
 
-void px4_rc_ppm_input_get(rc_ppm_input_data_st * data)
+void px4_rc_ppm_get(rc_ppm_data_st * data)
 {
-	memcpy(data, &rc_in_data_storage[storage_idx], sizeof(rc_ppm_input_data_st));
+	memcpy(data, &rc_in_data_storage[storage_idx], sizeof(rc_ppm_data_st));
 }
 
-void px4_rc_ppm_input_init(void)
+void px4_rc_ppm_init(void)
 {
 	memset(&rc_in_data_storage, 0, sizeof(rc_in_data_storage));
 	pxio_driver_init();
@@ -18,7 +18,7 @@ void px4_rc_ppm_input_init(void)
 	px4debug("rc_ppm_input init ok\n");
 }
 
-void px4_rc_ppm_input_update()
+void px4_rc_ppm_update()
 {
 	if (module_init == DISABLE)
 	{
@@ -27,7 +27,7 @@ void px4_rc_ppm_input_update()
 
 	// same implementation as in official pixhawk driver px4io.cpp
 	const unsigned prolog = PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT;
-	uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
+	uint16_t regs[RC_MAX_CHANNELS + prolog];
 
 	// Read channel data (channel count, ...) and the some first channels
 	int ret = pxio_driver_reg_get( PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog + 9);
@@ -40,9 +40,9 @@ void px4_rc_ppm_input_update()
 	// get the channel count
 	uint16_t channel_count = regs[PX4IO_P_RAW_RC_COUNT];
 	
-	if (channel_count > RC_INPUT_MAX_CHANNELS) 
+	if (channel_count > RC_MAX_CHANNELS) 
 	{
-		channel_count = RC_INPUT_MAX_CHANNELS;
+		channel_count = RC_MAX_CHANNELS;
 	}
 
 	// if there are more channels than we read first time, so get the values of the next channel
