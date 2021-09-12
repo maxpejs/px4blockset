@@ -446,19 +446,18 @@ void px4debug(char * MESSAGE, ...)
 	va_list arg;
 	va_start(arg, MESSAGE);
 
-	// TODO reduce arr size to ~100?
-	int messageSize = 256;
+	int messageSize = 100;
 	int cnt = -1;
 
 	// if no sceduler is running (queue mechanism doesn't active yet)
 	if (xTaskGetSchedulerState() != taskSCHEDULER_RUNNING)
 	{
 		// use dynamic strings
-		char arr[256];
+		char arr[100];
 		cnt = vsnprintf(arr, messageSize, MESSAGE, arg);
 
-		// TODO use >= for check
-		if (cnt == messageSize-1)
+		// comm_itf_print_string("NO RTOS: ");
+		if (cnt >= messageSize-1)
 		{
 			comm_itf_print_string("WARNING! px4debug string size limit reached \n");
 		}
@@ -470,7 +469,7 @@ void px4debug(char * MESSAGE, ...)
 		// so create a message and send over queue to comm task
 		char * pcStringToSend = (char *) pvPortMalloc(messageSize);
 		cnt = vsnprintf(pcStringToSend, messageSize, MESSAGE, arg);
-		if (cnt == messageSize)
+		if (cnt >= messageSize - 1)
 		{
 			px4debug("WARNING! px4debug string size limit reached \n");
 		}
