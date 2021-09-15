@@ -12,10 +12,14 @@ static int32_t read(uint8_t page, uint8_t offset, uint16_t * data, uint8_t count
 static int32_t write(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count);
 static int32_t com_complete();
 
+static int32_t pxio_sem;	// semaphore for managing critical section
+
 void pxio_driver_init(void)
 {
 	if(module_state == DISABLE)
 	{
+		pxio_sem = 0;
+
 		memset(&dmaTxBuffer, 0, sizeof(dmaTxBuffer));
 		memset(&dmaRxBuffer, 0, sizeof(dmaRxBuffer));
 
@@ -159,7 +163,7 @@ int32_t pxio_driver_reg_mod(uint8_t page, uint8_t offset, uint16_t clearbits, ui
 	return ret; 
 }
 
-int32_t pxio_driver_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values)
+int32_t pxio_driver_reg_get(uint8_t page, uint8_t offset, uint16_t * values, unsigned num_values)
 {
 	if (num_values > ((MAX_TRANSFER) / sizeof(*values)))
 	{
@@ -195,31 +199,38 @@ int32_t pxio_driver_reg_set(uint8_t page, uint8_t offset, uint16_t * values, uns
 
 int32_t write(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 {
+	uint8_t ret_pck_code = 0;
+	uint8_t tries = TRANSMIT_TRIES_CNT;
+
+	int32_t result = ERROR;
+
 	if (count > PKT_MAX_REGS)
 		return ERROR;
 
-	int result;
-	int tries = TRANSMIT_TRIES_CNT;
+	//----------------------------------------------
+	// CRITICAL SECTION START
+	memset(&dmaTxBuffer, 0, sizeof(dmaTxBuffer));
+	dmaTxBuffer.count_code = count | PKT_CODE_WRITE;
+	dmaTxBuffer.page = page;
+	dmaTxBuffer.offset = offset;
+	memcpy((void*) &dmaTxBuffer.regs[0], (void*) values, count * 2);
+	for (unsigned i = count; i < PKT_MAX_REGS; i++)
+	{
+		dmaTxBuffer.regs[i] = 0x55aa;
+	}
+
 	do
 	{
-		memset(&dmaTxBuffer, 0, sizeof(dmaTxBuffer));
-		dmaTxBuffer.count_code = count | PKT_CODE_WRITE;
-		dmaTxBuffer.page = page;
-		dmaTxBuffer.offset = offset;
-		memcpy((void*) &dmaTxBuffer.regs[0], (void*) values, count*2);
-
-		for (unsigned i = count; i < PKT_MAX_REGS; i++)
-		{
-			dmaTxBuffer.regs[i] = 0x55aa;
-		}
-
 		result = com_complete();
+		ret_pck_code = PKT_CODE(dmaRxBuffer);
 
-	} while (result != SUCCESS && tries-- > 0);
+	} while (result != SUCCESS && --tries > 0);
+	// CRITICAL SECTION END
+	//----------------------------------------------
 
 	if (result == SUCCESS)
 	{
-		if (PKT_CODE(dmaRxBuffer) != PKT_CODE_ERROR)
+		if (ret_pck_code != PKT_CODE_ERROR)
 		{
 			result = count;
 		}
@@ -229,35 +240,38 @@ int32_t write(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 			result = ERROR;
 		}
 	}
-	
+
 	return result;
 }
 
 int32_t read(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 {
+	int32_t result = ERROR;
+	uint8_t tries = TRANSMIT_TRIES_CNT;
+
 	if (count > PKT_MAX_REGS)
 	{
 		return ERROR;
 	}
 
-	int result;
-	int tries = TRANSMIT_TRIES_CNT;
+	//----------------------------------------------
+	// CRITICAL SECTION START
+	memset(&dmaTxBuffer, 0, sizeof(dmaTxBuffer));
+	dmaTxBuffer.count_code = count | PKT_CODE_READ;
+	dmaTxBuffer.page = page;
+	dmaTxBuffer.offset = offset;
+
 	do
 	{
-		memset(&dmaTxBuffer, 0, sizeof(dmaTxBuffer));
-		dmaTxBuffer.count_code = count | PKT_CODE_READ;
-		dmaTxBuffer.page = page;
-		dmaTxBuffer.offset = offset;
-
 		result = com_complete();
-		
-	} while (result != SUCCESS && tries-- > 0);
+
+	} while (result != SUCCESS && --tries > 0);
 
 	if (result == SUCCESS)
 	{
 		if (PKT_CODE(dmaRxBuffer) == PKT_CODE_ERROR)
 		{
-			px4debug("pck code err\n");
+			px4debug("read pck err\n");
 			result = ERROR;
 		}
 		else if (PKT_COUNT(dmaRxBuffer) != count) /* compare register counts */
@@ -272,6 +286,9 @@ int32_t read(uint8_t page, uint8_t offset, uint16_t * values, uint8_t count)
 			result = count;
 		}
 	}
+
+	// CRITICAL SECTION END
+	//----------------------------------------------
 
 	return result;
 }
@@ -292,7 +309,7 @@ int32_t com_complete()
 		px4debug("setup rx dma err\n");
 	}
 
-	// load tx dma and fires
+	// load tx dma and start the transmission
 	if (HAL_UART_Transmit_DMA(&PXIO_UART, (uint8_t*) &dmaTxBuffer, PKT_SIZE(dmaTxBuffer)) != HAL_OK)
 	{
 		px4debug("setup tx dma err\n");
@@ -334,12 +351,28 @@ int32_t com_complete()
 		timer = toc(start);
 	}
 
+	if (timer >= DMA_TXRX_TIMEOUT)
+	{
+		px4debug("dma rx timeout\n");
+		return ERROR;
+	}
+
 	// rx transaction is over, check that we received package correct, by checking crc
+	// received crc value
 	uint8_t crc = dmaRxBuffer.crc;
+
+	// calc our own crc from received bytes
 	dmaRxBuffer.crc = 0;
-	if ((crc != crc_packet(&dmaRxBuffer)) | (PKT_CODE(dmaRxBuffer) == PKT_CODE_CORRUPT))
+	if (crc != crc_packet(&dmaRxBuffer))
 	{
 		px4debug("dma crc err\n");
+		result = ERROR;
+	}
+
+	// check package code
+	if (PKT_CODE(dmaRxBuffer) == PKT_CODE_CORRUPT)
+	{
+		px4debug("pxio rx pkt corr\n");
 		result = ERROR;
 	}
 
