@@ -41,7 +41,9 @@ switch hookMethod
                         if evalin('base', 'PX4DebugModeChanged') == 1
                             % Debug mode was changed, so we need to recompile all sources.
                             % Therefor clean project (delete object files)
+                            customPrint('Rebuild ... Clean the old software first ...');
                             status = customDos('makeClean.bat');
+                            customPrint('Now start the build ...');
                             if(status == 2)
                                 % compile error
                                 msgbox(['makeClean.bat error at' modelName '. See command window for more informations. ', ...
