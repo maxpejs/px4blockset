@@ -2,7 +2,7 @@
 #include <logger_ring_buffer.h>
 #include <FatFs/Core/ff_gen_drv.h>
 #include <sd_diskio.h>
-#include <cmsis_os.h>
+// #include <cmsis_os.h>
 
 #include <stdio.h>
 #include <stdint.h>
