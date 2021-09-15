@@ -32,7 +32,7 @@ typedef struct
 */
 typedef struct
 {
-	uint16_t values[MAX_MAIN_OUT_SERVO_CNT];	// Array with ipulse values
+	uint16_t values[MAX_MAIN_OUT_SERVO_CNT];	// Array with impulse values
 	uint8_t safetyoff;							// SafetyOff flag
 	uint8_t arm;								// Arming flag
 }pwm_main_out_data_st;
