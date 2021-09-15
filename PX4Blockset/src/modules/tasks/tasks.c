@@ -6,15 +6,15 @@
 
 void Common_Task(void const * argv);
 
-px4_task _tasklist[eMaxCount];
+px4_task tasklist[eMaxCount];
 SemaphoreHandle_t _spiMutex, _pxioMutex;
 
 QueueHandle_t getQueueHandleByEnum(eTaskID id)
 {
-	return _tasklist[id].msgQueue;
+	return tasklist[id].msgQueue;
 }
 
-const char *  getTaskNameByEnum(eTaskID id)
+const char * getTaskNameByEnum(eTaskID id)
 {
 	switch (id)
 	{
@@ -37,30 +37,29 @@ const char *  getTaskNameByEnum(eTaskID id)
 
 void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTimeMS, uint32_t stacksize, uint32_t taskPrio)
 {
-	_tasklist[id].taskID 		= id;
-	_tasklist[id].taskFunction 	= func;
-	_tasklist[id].stackSize 	= (stacksize < configMINIMAL_STACK_SIZE) ? configMINIMAL_STACK_SIZE : stacksize;
-	_tasklist[id].taskPrio 		= taskPrio;
-	_tasklist[id].sampleTime 	= sampleTimeMS;
+	tasklist[id].taskID 		= id;
+	tasklist[id].taskFunction 	= func;
+	tasklist[id].stackSize 	    = max(stacksize, configMINIMAL_STACK_SIZE);
+	tasklist[id].taskPrio 		= taskPrio;
+	tasklist[id].sampleTime 	= sampleTimeMS;
 
 	const char * taskname = getTaskNameByEnum(id);
 	size_t name_length = min(strlen(getTaskNameByEnum(id)) + 1, TASK_NAME_MAX_LENGTH);
-	memcpy(_tasklist[id].name, taskname, name_length);
-	_tasklist[id].name[TASK_NAME_MAX_LENGTH] = 0; // string termination
+	memcpy(tasklist[id].name, taskname, name_length);
+	tasklist[id].name[TASK_NAME_MAX_LENGTH] = 0; // string termination
 
-	px4debug("reg task \"%s\"\n", _tasklist[id].name);
+	px4debug("reg task \"%s\"\n", tasklist[id].name);
 
-	uint32_t ret = 0;
 	uint32_t msgQueueSize = 0;
 
 	// handle common mutexes
 	switch (id)
 	{
-	case ePWM_MAIN:		_tasklist[id].mutex = _pxioMutex; break;
-	case ePPM_INPUT:	_tasklist[id].mutex = _pxioMutex; break;
-	case eMPU6000:		_tasklist[id].mutex = _spiMutex;  break;
-	case eMS5611:		_tasklist[id].mutex = _spiMutex;  break;
-	default:			_tasklist[id].mutex = NULL;		  break;
+	case ePWM_MAIN:		tasklist[id].mutex = _pxioMutex; break;
+	case ePPM_INPUT:	tasklist[id].mutex = _pxioMutex; break;
+	case eMPU6000:		tasklist[id].mutex = _spiMutex;  break;
+	case eMS5611:		tasklist[id].mutex = _spiMutex;  break;
+	default:			tasklist[id].mutex = NULL;		  break;
 	}
 
 	// set different message queue size
@@ -70,15 +69,15 @@ void px4_tasks_register_task(eTaskID id, callback_t func, uint32_t sampleTimeMS,
 	default: 		msgQueueSize = MSG_QUEUE_SIZE_DEFAULT;	break;
 	}
 
-	_tasklist[id].msgQueue = xQueueCreate(msgQueueSize, sizeof(char*));
+	tasklist[id].msgQueue = xQueueCreate(msgQueueSize, sizeof(char*));
 
-	ret = xTaskCreate(	(TaskFunction_t) Common_Task,
-						_tasklist[id].name,
-						_tasklist[id].stackSize,
-						(void*) &(_tasklist[id]),
-						_tasklist[id].taskPrio,
-						&(_tasklist[id].threadID)
-					);
+	uint32_t ret = xTaskCreate(	(TaskFunction_t) Common_Task,
+								tasklist[id].name,
+								tasklist[id].stackSize,
+								(void*) &(tasklist[id]),
+								tasklist[id].taskPrio,
+								&(tasklist[id].threadID)
+							);
 
 	if (!ret)
 	{
@@ -129,7 +128,7 @@ void Common_Task(void const * argv)
 
 void px4_tasks_initialize()
 {
-	memset(_tasklist, 0, sizeof(_tasklist));
+	memset(tasklist, 0, sizeof(tasklist));
 	_spiMutex 		= xSemaphoreCreateMutex();
 	_pxioMutex 		= xSemaphoreCreateMutex();
 
